@@ -70,6 +70,8 @@ set(SOURCE_FILES_CLIENT
         tunnel.c
         tunnel.h
         client/client.c
+        client/tls_cli.c
+        client/tls_cli.h
         text_in_color.c
         text_in_color.h
         dump_info.c

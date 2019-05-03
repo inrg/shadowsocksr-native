@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include "ssrutils.h"
 
 #define TLS_DUMP_INFO   0
 
@@ -168,7 +169,7 @@ static void tls_cli_main_work_thread(uv_work_t* req) {
         mbedtls_test_cli_key_len, NULL, 0 );
 
 
-    port = itoa(config->remote_port, (char *)buf, 10);
+    port = ss_itoa(config->remote_port);
 #if TLS_DUMP_INFO
     mbedtls_printf("  . Connecting to %s/%s/%s...",
         transport == MBEDTLS_SSL_TRANSPORT_STREAM ? "tcp" : "udp",
@@ -462,7 +463,7 @@ static bool tls_cli_send_data(mbedtls_ssl_context *ssl_ctx,
     bool result = false;
 
     len = mbedtls_snprintf((char *)buf, MAX_REQUEST_SIZE, GET_REQUEST_FORMAT,
-        url_path, domain, domain_port, size);
+        url_path, domain, domain_port, (int)size);
 
     if (data && size) {
         memcpy(buf + len, data, size);
