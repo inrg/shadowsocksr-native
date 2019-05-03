@@ -16,6 +16,7 @@ struct cmd_line_info {
     char *server_port;
     char *request_page;
     char *root_cert_file;
+    char *out_put_file;
     int dump_level;
     bool help_flag;
 };

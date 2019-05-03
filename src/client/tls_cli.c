@@ -16,6 +16,7 @@
 #include "tunnel.h"
 #include "tls_cli.h"
 #include "ssrbuffer.h"
+#include "picohttpparser.h"
 #include <uv.h>
 
 #include <stdio.h>
@@ -65,7 +66,7 @@ static void tls_cli_main_work_thread(uv_work_t *req);
 static void tunnel_tls_send_data(struct tunnel_ctx *tunnel, struct buffer_t *data);
 static bool tls_cli_send_data(mbedtls_ssl_context *ssl_ctx,
     const char *url_path, const char *domain, unsigned short domain_port,
-    uint8_t *data, size_t size);
+    const uint8_t *data, size_t size);
 static void tls_cli_state_changed_notice_cb(uv_async_t *handle);
 static void tls_cli_after_cb(uv_work_t *req, int status);
 static void tls_cli_state_changed_async_send(struct tls_cli_ctx *ctx, enum tls_cli_state state, const uint8_t *buf, size_t len);
@@ -455,7 +456,7 @@ static bool tls_cli_send_data(mbedtls_ssl_context *ssl_ctx,
     const char *url_path,
     const char *domain,
     unsigned short domain_port,
-    uint8_t *data, size_t size)
+    const uint8_t *data, size_t size)
 {
     int len, written, frags, ret;
     uint8_t *buf = (uint8_t *)calloc(MAX_REQUEST_SIZE + 1, sizeof(*buf));
@@ -552,7 +553,18 @@ static void tls_cli_state_changed_async_send(struct tls_cli_ctx *ctx,
     ptr->ctx = ctx;
     ptr->state = state;
     if (buf && len) {
-        ptr->data = buffer_create_from(buf, (size_t)len);
+        int minor_version;
+        int status;
+        const char *msg;
+        size_t msg_len;
+        struct phr_header headers[6] = { { NULL } };
+        size_t num_headers;
+        int n;
+
+        num_headers = sizeof(headers) / sizeof(headers[0]);
+        n = phr_parse_response(buf, len, &minor_version, &status, &msg, &msg_len, headers, &num_headers, 0);
+
+        ptr->data = buffer_create_from((uint8_t *)(buf + n), (size_t)(len - n));
     }
     assert(ctx->async->data == NULL);
     ctx->async->data = (void*) ptr;

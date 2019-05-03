@@ -49,6 +49,8 @@ enum tunnel_stage {
     tunnel_stage_handshake_replied,        /* Start waiting for request data. */
     tunnel_stage_s5_request,        /* Wait for request data. */
     tunnel_stage_s5_udp_accoc,
+    tunnel_stage_tls_connecting,
+    tunnel_stage_tls_first_package,
     tunnel_stage_resolve_ssr_server_host_done,       /* Wait for upstream hostname DNS lookup to complete. */
     tunnel_stage_connecting_ssr_server,      /* Wait for uv_tcp_connect() to complete. */
     tunnel_stage_ssr_auth_sent,
@@ -416,6 +418,7 @@ static void do_parse_s5_request(struct tunnel_ctx *tunnel) {
     }
 
     if (config->over_tls_enable) {
+        ctx->stage = tunnel_stage_tls_connecting;
         tls_client_launch(tunnel, config);
         return;
     } else
@@ -726,7 +729,30 @@ static bool tunnel_is_in_streaming(struct tunnel_ctx *tunnel) {
 }
 
 static void tunnel_tls_on_connection_established(struct tunnel_ctx *tunnel) {
+    struct socket_ctx *incoming = tunnel->incoming;
+    struct socket_ctx *outgoing = tunnel->outgoing;
+    struct client_ctx *ctx = (struct client_ctx *) tunnel->data;
+
+    ASSERT(incoming->rdstate == socket_stop);
+    ASSERT(incoming->wrstate == socket_stop);
+    ASSERT(outgoing->rdstate == socket_stop);
+    ASSERT(outgoing->wrstate == socket_stop);
+
+    if (tunnel->tunnel_tls_send_data) {
+        struct buffer_t *tmp = buffer_clone(ctx->init_pkg);
+        if (ssr_ok != tunnel_cipher_client_encrypt(ctx->cipher, tmp)) {
+            buffer_release(tmp);
+            tunnel_shutdown(tunnel);
+            return;
+        }
+
+        ctx->stage = tunnel_stage_tls_first_package;
+        tunnel->tunnel_tls_send_data(tunnel, tmp);
+
+        buffer_release(tmp);
+    } else {
     ASSERT(false);
+    }
 }
 
 static void tunnel_tls_on_data_coming(struct tunnel_ctx *tunnel, struct buffer_t *data) {

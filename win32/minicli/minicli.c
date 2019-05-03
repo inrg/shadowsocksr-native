@@ -12,6 +12,7 @@
 #include "mbedtls/timing.h"
 
 #include "cmd_line_parser.h"
+#include "picohttpparser.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,7 +24,6 @@
 #define ALPN_LIST_SIZE  10
 #define DFL_PSK_IDENTITY "Client_identity"
 #define MAX_REQUEST_SIZE      20000
-#define MAX_REQUEST_SIZE_STR "20000"
 #define DFL_REQUEST_SIZE        -1
 #define DFL_TRANSPORT           MBEDTLS_SSL_TRANSPORT_STREAM
 
@@ -54,6 +54,7 @@ int main(int argc, char *argv[]) {
     unsigned char buf[MAX_REQUEST_SIZE + 1];
     int request_size = DFL_REQUEST_SIZE;
     int transport = DFL_TRANSPORT;
+    FILE *fp = NULL;
 
     cmd_line = cmd_line_info_create(argc, argv);
     if (cmd_line->help_flag) {
@@ -80,6 +81,10 @@ int main(int argc, char *argv[]) {
     }
     if (cmd_line->root_cert_file) {
         ret = mbedtls_x509_crt_parse_file(&cacert, cmd_line->root_cert_file);
+    }
+
+    if (cmd_line->out_put_file && strlen(cmd_line->out_put_file)) {
+        fp = fopen(cmd_line->out_put_file, "wb");
     }
 
     ret = mbedtls_x509_crt_parse( &clicert,
@@ -234,6 +239,8 @@ int main(int argc, char *argv[]) {
 
     /* TLS and DTLS need different reading styles (stream vs datagram) */
     if (transport == MBEDTLS_SSL_TRANSPORT_STREAM) {
+        bool header_parsed = false;
+        size_t count = 0;
         do {
             len = sizeof(buf) - 1;
             memset(buf, 0, sizeof(buf));
@@ -267,8 +274,29 @@ int main(int argc, char *argv[]) {
 
             len = ret;
             buf[len] = '\0';
-            mbedtls_printf(" %d bytes read\n\n%s", len, (char *)buf);
 
+            if (fp) {
+                if (header_parsed) {
+                    count += len;
+                    fwrite(buf, len, 1, fp);
+                    mbedtls_printf(" %d bytes read\n", count);
+                } else {
+                int minor_version;
+                int status;
+                const char *msg;
+                size_t msg_len;
+                struct phr_header headers[20] = { { NULL } };
+                size_t num_headers = sizeof(headers) / sizeof(headers[0]);
+                int n = phr_parse_response((char *)buf, len, &minor_version, &status, &msg, &msg_len, headers, &num_headers, 0);
+
+                count = len - n;
+                fwrite(buf + n, count, 1, fp);
+                header_parsed = true;
+                mbedtls_printf(" %d bytes read\n", count);
+                }
+            } else {
+            mbedtls_printf(" %d bytes read\n\n%s", len, (char *)buf);
+            }
             /* End of message should be detected according to the syntax of the
              * application protocol (eg HTTP), just use a dummy test here. */
             if (ret > 0 && buf[len-1] == '\n') {
@@ -305,6 +333,10 @@ exit:
         mbedtls_printf("Last error was: -0x%X - %s\n\n", -ret, error_buf);
     }
 #endif
+
+    if (fp) {
+        fclose(fp);
+    }
 
     mbedtls_net_free( &connect_ctx );
 

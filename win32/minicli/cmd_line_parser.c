@@ -31,7 +31,7 @@ struct cmd_line_info * cmd_line_info_create(int argc, char * const argv[]) {
 
     struct cmd_line_info *info = (struct cmd_line_info *)calloc(1, sizeof(*info));
 
-    while (-1 != (opt = getopt(argc, argv, "s:p:r:c:d:h"))) {
+    while (-1 != (opt = getopt(argc, argv, "s:p:r:c:d:o:h"))) {
         switch (opt) {
         case 's':
             string_safe_assign(&info->server_addr, optarg);
@@ -47,6 +47,9 @@ struct cmd_line_info * cmd_line_info_create(int argc, char * const argv[]) {
             break;
         case 'd':
             info->dump_level = atoi(optarg);
+            break;
+        case 'o':
+            string_safe_assign(&info->out_put_file, optarg);
             break;
         case 'h':
         default:
@@ -68,6 +71,7 @@ struct cmd_line_info * cmd_line_info_create(int argc, char * const argv[]) {
 void cmd_line_info_destroy(struct cmd_line_info *info) {
     if (info) {
         object_safe_free((void **)&info->root_cert_file);
+        object_safe_free((void **)&info->out_put_file);
         object_safe_free((void **)&info->server_addr);
         object_safe_free((void **)&info->server_port);
         object_safe_free((void **)&info->request_page);
@@ -101,6 +105,7 @@ int usage(int argc, char * const argv[]) {
         "  -p <server port>       Remote server port number.\n"
         "  -r <request page>      Request page path.\n"
         "  -c <certificate file>  Root certificate file path.\n"
+        "  -o <output file>       Output the contents to a file.\n"
         "  -d <dump level>        Dump level, default is 0.\n"
         "  -h                     Show this help message.\n"
         "",

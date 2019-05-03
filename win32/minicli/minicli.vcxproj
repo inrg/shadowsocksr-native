@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\src\picohttpparser.c" />
     <ClCompile Include="..\src\getopt.c" />
     <ClCompile Include="..\src\getopt_long.c" />
     <ClCompile Include="..\src\strncasecmp.c" />
@@ -26,6 +27,7 @@
     <ClCompile Include="minicli.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\src\picohttpparser.h" />
     <ClInclude Include="..\include\getopt.h" />
     <ClInclude Include="..\include\getopt_long.h" />
     <ClInclude Include="..\include\inttypes.h" />

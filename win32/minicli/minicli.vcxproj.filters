@@ -33,6 +33,9 @@
     <ClCompile Include="cmd_line_parser.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\picohttpparser.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\getopt_long.h">
@@ -55,6 +58,9 @@
     </ClInclude>
     <ClInclude Include="..\include\inttypes.h">
       <Filter>getopt</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\picohttpparser.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
