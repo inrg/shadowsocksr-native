@@ -31,6 +31,9 @@ win32/ssr-server/Debug/
 win32/ssr-server/Release/
 win32/ssr-server/x64/
 
+win32/minicli/Makefile
+win32/minicli/minicli
+
 *.vcxproj.user
 *.VC.opendb
 *.sdf
