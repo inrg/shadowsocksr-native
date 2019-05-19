@@ -26,3 +26,6 @@
 	path = depends/mbedtls
 	url = https://github.com/ShadowsocksR-Live/mbedtls.git
 	branch = master
+[submodule "depends/uv-mbed"]
+	path = depends/uv-mbed
+	url = https://github.com/ShadowsocksR-Live/uv-mbed.git

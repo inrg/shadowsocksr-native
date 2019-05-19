@@ -58,6 +58,12 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libipset", "libipset\libips
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pcre", "..\depends\pcre\win32\pcre.vcxproj", "{7B2F6734-4D74-4598-BABA-025A636057B5}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "uv-mbed", "..\depends\uv-mbed\win32\dll\uv-mbed.vcxproj", "{E683C8F1-3C3F-4B5D-B60E-87D792D21002}"
+	ProjectSection(ProjectDependencies) = postProject
+		{46CF2D25-6A36-4189-B59C-E4815388E554} = {46CF2D25-6A36-4189-B59C-E4815388E554}
+		{44EA013F-AD0F-4D53-8E06-0B4EF26F4B65} = {44EA013F-AD0F-4D53-8E06-0B4EF26F4B65}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -162,6 +168,13 @@ Global
 		{7B2F6734-4D74-4598-BABA-025A636057B5}.Release|Win32.Build.0 = Release|Win32
 		{7B2F6734-4D74-4598-BABA-025A636057B5}.Release|x64.ActiveCfg = Release|x64
 		{7B2F6734-4D74-4598-BABA-025A636057B5}.Release|x64.Build.0 = Release|x64
+		{E683C8F1-3C3F-4B5D-B60E-87D792D21002}.Debug|Win32.ActiveCfg = Debug|Win32
+		{E683C8F1-3C3F-4B5D-B60E-87D792D21002}.Debug|Win32.Build.0 = Debug|Win32
+		{E683C8F1-3C3F-4B5D-B60E-87D792D21002}.Debug|x64.ActiveCfg = Debug|x64
+		{E683C8F1-3C3F-4B5D-B60E-87D792D21002}.Release|Win32.ActiveCfg = Release|Win32
+		{E683C8F1-3C3F-4B5D-B60E-87D792D21002}.Release|Win32.Build.0 = Release|Win32
+		{E683C8F1-3C3F-4B5D-B60E-87D792D21002}.Release|x64.ActiveCfg = Release|x64
+		{E683C8F1-3C3F-4B5D-B60E-87D792D21002}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
