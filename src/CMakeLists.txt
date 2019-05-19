@@ -1,3 +1,5 @@
+set(SSR_MAIN_DIR ${CMAKE_CURRENT_SOURCE_DIR} CACHE INTERNAL "SSR main directory" FORCE)
+
 set(SOURCE_FILES_SNI
         shadowsocks.h
         socks5.h
@@ -72,6 +74,8 @@ set(SOURCE_FILES_CLIENT
         client/client.c
         client/tls_cli.c
         client/tls_cli.h
+        picohttpparser.c
+        picohttpparser.h
         text_in_color.c
         text_in_color.h
         dump_info.c
