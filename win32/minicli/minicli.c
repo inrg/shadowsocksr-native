@@ -279,7 +279,7 @@ int main(int argc, char *argv[]) {
                 if (header_parsed) {
                     count += len;
                     fwrite(buf, len, 1, fp);
-                    mbedtls_printf(" %d bytes read\n", count);
+                    mbedtls_printf(" %d bytes read\n", (int)count);
                 } else {
                 int minor_version;
                 int status;
@@ -292,7 +292,7 @@ int main(int argc, char *argv[]) {
                 count = len - n;
                 fwrite(buf + n, count, 1, fp);
                 header_parsed = true;
-                mbedtls_printf(" %d bytes read\n", count);
+                mbedtls_printf(" %d bytes read\n", (int)count);
                 }
             } else {
             mbedtls_printf(" %d bytes read\n\n%s", len, (char *)buf);
