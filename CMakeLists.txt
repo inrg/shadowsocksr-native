@@ -11,10 +11,7 @@ set(CMAKE_LEGACY_CYGWIN_WIN32 0)
 cmake_minimum_required(VERSION 2.6)
 set(PROJECT_NAME shadowsocksr-native)
 set(RELEASE_DATE 2015-09-03)
-project(${PROJECT_NAME})
-
-set(VERSION 2.5.6)
-
+project(${PROJECT_NAME} VERSION 0.6.0 LANGUAGES C)
 
 set(with_crypto_library "mbedtls" CACHE STRING "build with the given crypto library, TYPE=mbedtls")
 

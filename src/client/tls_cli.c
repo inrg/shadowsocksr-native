@@ -18,6 +18,7 @@
 #include "ssrbuffer.h"
 #include "picohttpparser.h"
 #include <uv.h>
+#include <uv_mbed/uv_mbed.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,11 +38,12 @@
     "Connection: keep-alive\r\n"                                                            \
     "Upgrade-Insecure-Requests: 1\r\n"                                                      \
     "Content-Type: application/octet-stream\r\n"                                            \
-    "Content-Length: %d\r\n\r\n"                                                            \
+    "Content-Length: %d\r\n"                                                                \
+    "\r\n"                                                                                  \
 
 #define ALPN_LIST_SIZE  10
 #define DFL_PSK_IDENTITY "Client_identity"
-#define MAX_REQUEST_SIZE      20000
+#define MAX_REQUEST_SIZE      0x8000
 #define DFL_REQUEST_SIZE        -1
 #define DFL_TRANSPORT           MBEDTLS_SSL_TRANSPORT_STREAM
 
@@ -53,18 +55,21 @@ enum tls_cli_state {
 };
 
 struct tls_cli_ctx {
+#if 0
     struct uv_work_s *req;
     struct uv_async_s *async;
     mbedtls_ssl_context *ssl_ctx;
+#endif
     struct tunnel_ctx *tunnel; /* weak pointer */
     struct server_config *config; /* weak pointer */
+    uv_mbed_t *mbed;
 };
 
 struct tls_cli_ctx * create_tls_cli_ctx(struct tunnel_ctx *tunnel, struct server_config *config);
 void destroy_tls_cli_ctx(struct tls_cli_ctx *ctx);
 
 static void tls_cli_main_work_thread(uv_work_t *req);
-static void tunnel_tls_send_data(struct tunnel_ctx *tunnel, struct buffer_t *data);
+static void tunnel_tls_send_data(struct tunnel_ctx *tunnel, const uint8_t *data, size_t size);
 static bool tls_cli_send_data(mbedtls_ssl_context *ssl_ctx,
     const char *url_path, const char *domain, unsigned short domain_port,
     const uint8_t *data, size_t size);
@@ -78,6 +83,120 @@ struct tls_cli_state_ctx {
     enum tls_cli_state state;
 };
 
+void _mbed_connect_done_cb(uv_mbed_t* mbed, int status, void *p);
+static void _mbed_alloc_done_cb(uv_mbed_t *mbed, size_t suggested_size, uv_buf_t *buf, void *p);
+static void _mbed_data_received_cb(uv_mbed_t *mbed, ssize_t nread, uv_buf_t* buf, void *p);
+static void _tls_cli_send_data(struct tls_cli_ctx *, const uint8_t *data, size_t size);
+static void _mbed_write_done_cb(uv_mbed_t *mbed, int status, void *p);
+static void _mbed_close_done_cb(uv_mbed_t *mbed, void *p);
+
+void tls_client_launch(struct tunnel_ctx *tunnel, struct server_config *config) {
+    uv_loop_t *loop = tunnel->listener->loop;
+    struct tls_cli_ctx *ctx = (struct tls_cli_ctx *)calloc(1, sizeof(*ctx));
+    ctx->mbed = uv_mbed_init(loop, NULL, 0);
+    ctx->config = config;
+    ctx->tunnel = tunnel;
+
+    tunnel->tls_ctx = ctx;
+    tunnel->tunnel_tls_send_data = &tunnel_tls_send_data;
+
+    uv_mbed_connect(ctx->mbed, config->remote_host, config->remote_port, _mbed_connect_done_cb, ctx);
+}
+
+void _mbed_connect_done_cb(uv_mbed_t* mbed, int status, void *p) {
+    struct tls_cli_ctx *ctx = (struct tls_cli_ctx *)p;
+    struct tunnel_ctx *tunnel = ctx->tunnel;
+
+    if (status < 0) {
+        fprintf(stderr, "connect failed: %d: %s\n", status, uv_strerror(status));
+        uv_mbed_close(mbed, _mbed_close_done_cb, p);
+        return;
+    }
+
+    uv_mbed_read(mbed, _mbed_alloc_done_cb, _mbed_data_received_cb, p);
+
+    if (tunnel->tunnel_tls_on_connection_established) {
+        tunnel->tunnel_tls_on_connection_established(tunnel);
+    }
+}
+
+static void _mbed_alloc_done_cb(uv_mbed_t *mbed, size_t suggested_size, uv_buf_t *buf, void *p) {
+    char *base = (char *) calloc(suggested_size, sizeof(char));
+    *buf = uv_buf_init(base, suggested_size);
+}
+
+static void _mbed_data_received_cb(uv_mbed_t *mbed, ssize_t nread, uv_buf_t* buf, void *p) {
+    struct tls_cli_ctx *ctx = (struct tls_cli_ctx *)p;
+    struct tunnel_ctx *tunnel = ctx->tunnel;
+    assert(ctx->mbed == mbed);
+    if (nread > 0) {
+        assert(tunnel->tunnel_tls_on_data_coming);
+        if (tunnel->tunnel_tls_on_data_coming) {
+            tunnel->tunnel_tls_on_data_coming(tunnel, (uint8_t *)buf->base, (size_t)nread);
+        }
+    } else if (nread < 0) {
+        if (nread == UV_EOF) {
+            printf("=====================\nconnection closed\n");
+        } else {
+            fprintf(stderr, "read error %ld: %s\n", nread, uv_strerror((int) nread));
+        }
+        uv_mbed_close(mbed, _mbed_close_done_cb, p);
+    }
+
+    free(buf->base);
+}
+
+static void _tls_cli_send_data(struct tls_cli_ctx *ctx, const uint8_t *data, size_t size) {
+    struct server_config *config = ctx->config;
+    const char *url_path = config->over_tls_path;
+    const char *domain = config->over_tls_server_domain;
+    unsigned short domain_port = config->remote_port;
+    uv_buf_t o;
+    uint8_t *buf = (uint8_t *)calloc(MAX_REQUEST_SIZE + 1, sizeof(*buf));
+    int len = mbedtls_snprintf((char *)buf, MAX_REQUEST_SIZE, GET_REQUEST_FORMAT,
+        url_path, domain, domain_port, (int)size);
+
+    if (data && size) {
+        memcpy(buf + len, data, size);
+        len += (int)size;
+    }
+
+    o = uv_buf_init((char *)buf, (unsigned int)len);
+    uv_mbed_write(ctx->mbed, &o, &_mbed_write_done_cb, ctx);
+
+    free(buf);
+}
+
+static void _mbed_write_done_cb(uv_mbed_t *mbed, int status, void *p) {
+    struct tls_cli_ctx *ctx = (struct tls_cli_ctx *)p;
+    assert(ctx->mbed == mbed);
+    if (status < 0) {
+        fprintf(stderr, "write failed: %d: %s\n", status, uv_strerror(status));
+        uv_mbed_close(mbed, _mbed_close_done_cb, p);
+    } else {
+        printf("request sent %d\n", status);
+    }
+}
+
+static void _mbed_close_done_cb(uv_mbed_t *mbed, void *p) {
+    struct tls_cli_ctx *ctx = (struct tls_cli_ctx *)p;
+    struct tunnel_ctx *tunnel = ctx->tunnel;
+    assert(mbed == ctx->mbed);
+
+    if (tunnel->tunnel_tls_on_shutting_down) {
+        tunnel->tunnel_tls_on_shutting_down(tunnel);
+    }
+
+    uv_mbed_free(mbed);
+    free(ctx);
+}
+
+static void tunnel_tls_send_data(struct tunnel_ctx *tunnel, const uint8_t *data, size_t size) {
+    struct tls_cli_ctx *ctx = tunnel->tls_ctx;
+    _tls_cli_send_data(ctx, data, size);
+}
+
+#if 0
 void tls_client_launch(struct tunnel_ctx *tunnel, struct server_config *config) {
     uv_loop_t *loop = tunnel->listener->loop;
     struct tls_cli_ctx *ctx = create_tls_cli_ctx(tunnel, config);
@@ -571,3 +690,4 @@ static void tls_cli_state_changed_async_send(struct tls_cli_ctx *ctx,
     ctx->async->data = (void*) ptr;
     uv_async_send(ctx->async);
 }
+#endif
