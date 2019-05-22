@@ -159,6 +159,7 @@ include_directories(${PCRE_INCLUDE_DIR})
 
 if(USE_CRYPTO_MBEDTLS)
     include_directories(${MBEDTLS_ROOT_DIR}/include)
+    include_directories(${UVMBED_DIR}/include)
 endif()
 
 if (WIN32)
@@ -218,7 +219,7 @@ if (WIN32)
 endif()
 
 
-target_link_libraries(ssr-client ${ss_lib_net})
+target_link_libraries(ssr-client ${ss_lib_net} uv-mbed)
 
 target_link_libraries(ssr-local ${ss_lib_net})
 
