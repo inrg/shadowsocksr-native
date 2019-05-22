@@ -45,6 +45,9 @@ struct tls_cli_ctx {
     struct tunnel_ctx *tunnel; /* weak pointer */
     struct server_config *config; /* weak pointer */
     uv_mbed_t *mbed;
+    bool header_parsed;
+    size_t file_size;
+    size_t progress_size;
 };
 
 static void tunnel_tls_send_data(struct tunnel_ctx *tunnel, const uint8_t *data, size_t size);
@@ -67,6 +70,11 @@ void tls_client_launch(struct tunnel_ctx *tunnel, struct server_config *config) 
     tunnel->tunnel_tls_send_data = &tunnel_tls_send_data;
 
     uv_mbed_connect(ctx->mbed, config->remote_host, config->remote_port, _mbed_connect_done_cb, ctx);
+}
+
+void tls_client_shutdown(struct tunnel_ctx *tunnel) {
+    struct tls_cli_ctx *ctx = tunnel->tls_ctx;
+    uv_mbed_close(ctx->mbed, _mbed_close_done_cb, ctx);
 }
 
 static void _mbed_connect_done_cb(uv_mbed_t* mbed, int status, void *p) {
@@ -96,15 +104,34 @@ static void _mbed_data_received_cb(uv_mbed_t *mbed, ssize_t nread, uv_buf_t* buf
     struct tunnel_ctx *tunnel = ctx->tunnel;
     assert(ctx->mbed == mbed);
     if (nread > 0) {
+        char *ptmp = (char *)buf->base;
+        size_t len0 = (size_t)nread;
+        if (ctx->header_parsed == false) {
+#define GET_REQUEST_END "\r\n\r\n"
+            char *px = strstr((char *)buf->base, GET_REQUEST_END);
+            if (px != NULL) {
+                ptmp = px + strlen(GET_REQUEST_END);
+                len0 = len0 - (size_t)(ptmp - buf->base);
+            }
+            ctx->header_parsed = true;
+
+#define CONTENT_LENGTH "Content-Length:"
+            px = strstr((char *)buf->base, CONTENT_LENGTH);
+            if (px) {
+                px = px + strlen(CONTENT_LENGTH);
+                ctx->file_size = (size_t) strtol(px, NULL, 10);
+            }
+        }
+
         assert(tunnel->tunnel_tls_on_data_received);
         if (tunnel->tunnel_tls_on_data_received) {
-            tunnel->tunnel_tls_on_data_received(tunnel, (uint8_t *)buf->base, (size_t)nread);
+            tunnel->tunnel_tls_on_data_received(tunnel, (uint8_t *)ptmp, (size_t)len0);
         }
     } else if (nread < 0) {
         if (nread == UV_EOF) {
-            printf("=====================\nconnection closed\n");
+            pr_info("=====================\nconnection closed\n");
         } else {
-            fprintf(stderr, "read error %ld: %s\n", nread, uv_strerror((int) nread));
+            pr_err("read error %ld: %s\n", nread, uv_strerror((int) nread));
         }
         uv_mbed_close(mbed, _mbed_close_done_cb, p);
     }
@@ -137,10 +164,10 @@ static void _mbed_write_done_cb(uv_mbed_t *mbed, int status, void *p) {
     struct tls_cli_ctx *ctx = (struct tls_cli_ctx *)p;
     assert(ctx->mbed == mbed);
     if (status < 0) {
-        fprintf(stderr, "write failed: %d: %s\n", status, uv_strerror(status));
+        pr_err("write failed: %d: %s\n", status, uv_strerror(status));
         uv_mbed_close(mbed, _mbed_close_done_cb, p);
     } else {
-        printf("request sent %d\n", status);
+        pr_info("request sent %d\n", status);
     }
 }
 
