@@ -92,7 +92,7 @@ static void tunnel_write_done(struct tunnel_ctx *tunnel, struct socket_ctx *sock
 static size_t tunnel_get_alloc_size(struct tunnel_ctx *tunnel, struct socket_ctx *socket, size_t suggested_size);
 static bool tunnel_is_in_streaming(struct tunnel_ctx *tunnel);
 static void tunnel_tls_on_connection_established(struct tunnel_ctx *tunnel);
-static void tunnel_tls_on_data_coming(struct tunnel_ctx *tunnel, const uint8_t *data, size_t size);
+static void tunnel_tls_on_data_received(struct tunnel_ctx *tunnel, const uint8_t *data, size_t size);
 static void tunnel_tls_on_shutting_down(struct tunnel_ctx *tunnel);
 
 static bool can_auth_none(const uv_tcp_t *lx, const struct tunnel_ctx *cx);
@@ -116,7 +116,7 @@ static bool init_done_cb(struct tunnel_ctx *tunnel, void *p) {
     tunnel->tunnel_is_in_streaming = &tunnel_is_in_streaming;
     tunnel->tunnel_extract_data = &tunnel_extract_data;
     tunnel->tunnel_tls_on_connection_established = &tunnel_tls_on_connection_established;
-    tunnel->tunnel_tls_on_data_coming = &tunnel_tls_on_data_coming;
+    tunnel->tunnel_tls_on_data_received = &tunnel_tls_on_data_received;
     tunnel->tunnel_tls_on_shutting_down = &tunnel_tls_on_shutting_down;
 
     cstl_set_container_add(ctx->env->tunnel_set, tunnel);
@@ -755,7 +755,7 @@ static void tunnel_tls_on_connection_established(struct tunnel_ctx *tunnel) {
     }
 }
 
-static void tunnel_tls_on_data_coming(struct tunnel_ctx *tunnel, const uint8_t *data, size_t size) {
+static void tunnel_tls_on_data_received(struct tunnel_ctx *tunnel, const uint8_t *data, size_t size) {
     ASSERT(false);
 }
 
