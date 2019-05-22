@@ -288,7 +288,7 @@ static void do_handshake(struct tunnel_ctx *tunnel) {
     size = (size_t)incoming->result;
     err = s5_parse(parser, &data, &size);
     if (err == s5_ok) {
-        socket_read(incoming);
+        socket_read(incoming, true);
         ctx->stage = tunnel_stage_handshake;  /* Need more data. */
         return;
     }
@@ -346,7 +346,7 @@ static void do_wait_s5_request(struct tunnel_ctx *tunnel) {
         return;
     }
 
-    socket_read(incoming);
+    socket_read(incoming, true);
     ctx->stage = tunnel_stage_s5_request;
 }
 
@@ -379,7 +379,7 @@ static void do_parse_s5_request(struct tunnel_ctx *tunnel) {
 
     err = s5_parse(parser, &data, &size);
     if (err == s5_ok) {
-        socket_read(incoming);
+        socket_read(incoming, true);
         ctx->stage = tunnel_stage_s5_request;  /* Need more data. */
         return;
     }
@@ -568,7 +568,7 @@ static void do_ssr_auth_sent(struct tunnel_ctx *tunnel) {
     }
 
     if (tunnel_cipher_client_need_feedback(ctx->cipher)) {
-        socket_read(outgoing);
+        socket_read(outgoing, true);
         ctx->stage = tunnel_stage_ssr_waiting_feedback;
     } else {
         do_socks5_reply_success(tunnel);
@@ -650,8 +650,8 @@ static void do_launch_streaming(struct tunnel_ctx *tunnel) {
         return;
     }
 
-    socket_read(incoming);
-    socket_read(outgoing);
+    socket_read(incoming, true);
+    socket_read(outgoing, true);
     ctx->stage = tunnel_stage_streaming;
 }
 
@@ -754,7 +754,7 @@ static void tunnel_tls_do_launch_streaming(struct tunnel_ctx *tunnel) {
         PRINT_ERR("write error: %s", uv_strerror((int)incoming->result));
         tls_client_shutdown(tunnel);
     } else {
-        socket_read(incoming);
+        socket_read(incoming, true);
         ctx->stage = tunnel_stage_tls_streaming;
     }
 }
@@ -786,7 +786,7 @@ void tunnel_tls_traditional_streaming(struct tunnel_ctx *tunnel, struct socket_c
             }
             free(buf);
         }
-        socket_read(current_socket); ASSERT(false);
+        socket_read(current_socket, false); ASSERT(false);
     }
 }
 

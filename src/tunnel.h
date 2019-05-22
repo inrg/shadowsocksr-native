@@ -74,7 +74,7 @@ void tunnel_initialize(uv_tcp_t *lx, unsigned int idle_timeout, bool(*init_done_
 void tunnel_shutdown(struct tunnel_ctx *tunnel);
 void tunnel_traditional_streaming(struct tunnel_ctx *tunnel, struct socket_ctx *socket);
 int socket_connect(struct socket_ctx *c);
-void socket_read(struct socket_ctx *c);
+void socket_read(struct socket_ctx *c, bool check_timeout);
 void socket_read_stop(struct socket_ctx *c);
 void socket_getaddrinfo(struct socket_ctx *c, const char *hostname);
 void socket_write(struct socket_ctx *c, const void *data, size_t len);

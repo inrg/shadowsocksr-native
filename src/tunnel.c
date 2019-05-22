@@ -153,7 +153,7 @@ void tunnel_initialize(uv_tcp_t *listener, unsigned int idle_timeout, bool(*init
 
     if (success) {
         /* Wait for the initial packet. */
-        socket_read(incoming);
+        socket_read(incoming, true);
     } else {
         tunnel_shutdown(tunnel);
     }
@@ -196,7 +196,7 @@ void tunnel_traditional_streaming(struct tunnel_ctx *tunnel, struct socket_ctx *
     if (current_socket->wrstate == socket_done) {
         current_socket->wrstate = socket_stop;
         if (target_socket->rdstate == socket_stop) {
-            socket_read(target_socket);
+            socket_read(target_socket, true);
         }
     }
 
@@ -284,11 +284,13 @@ static void socket_connect_done_cb(uv_connect_t *req, int status) {
     tunnel->tunnel_outgoing_connected_done(tunnel, c);
 }
 
-void socket_read(struct socket_ctx *c) {
+void socket_read(struct socket_ctx *c, bool check_timeout) {
     ASSERT(c->rdstate == socket_stop);
     VERIFY(0 == uv_read_start(&c->handle.stream, socket_alloc_cb, socket_read_done_cb));
     c->rdstate = socket_busy;
-    socket_timer_start(c);
+    if (check_timeout) {
+        socket_timer_start(c);
+    }
 }
 
 static void socket_read_done_cb(uv_stream_t *handle, ssize_t nread, const uv_buf_t *buf) {
