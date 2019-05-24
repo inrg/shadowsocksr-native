@@ -18,7 +18,7 @@
 #include "ssrbuffer.h"
 #include "picohttpparser.h"
 #include <uv.h>
-#include <uv_mbed/uv_mbed.h>
+#include <uv-mbed/uv-mbed.h>
 
 #include <stdio.h>
 #include <stdlib.h>

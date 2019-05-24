@@ -367,7 +367,7 @@ static void do_next(struct tunnel_ctx *tunnel, struct socket_ctx *socket) {
         ASSERT(incoming->rdstate == socket_stop);
         ASSERT(incoming->wrstate == socket_done);
         incoming->wrstate = socket_stop;
-        socket_read(incoming);
+        socket_read(incoming, true);
         ctx->stage = tunnel_stage_client_feedback;
         break;
     case tunnel_stage_client_feedback:
@@ -827,8 +827,8 @@ static void do_launch_streaming(struct tunnel_ctx *tunnel, struct socket_ctx *so
         return;
     }
 
-    socket_read(incoming);
-    socket_read(outgoing);
+    socket_read(incoming, true);
+    socket_read(outgoing, true);
     ctx->stage = tunnel_stage_streaming;
 }
 
