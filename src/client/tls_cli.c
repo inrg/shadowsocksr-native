@@ -16,7 +16,6 @@
 #include "tunnel.h"
 #include "tls_cli.h"
 #include "ssrbuffer.h"
-#include "picohttpparser.h"
 #include <uv.h>
 #include <uv-mbed/uv-mbed.h>
 

@@ -7,6 +7,26 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		3A27FF6B229974A200CFAD25 /* text_in_color.c in Sources */ = {isa = PBXBuildFile; fileRef = 3A27FF69229974A100CFAD25 /* text_in_color.c */; };
+		3A27FF6C229974A200CFAD25 /* text_in_color.c in Sources */ = {isa = PBXBuildFile; fileRef = 3A27FF69229974A100CFAD25 /* text_in_color.c */; };
+		3A27FF6D229974A200CFAD25 /* text_in_color.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A27FF6A229974A200CFAD25 /* text_in_color.h */; };
+		3A27FF6E229974A200CFAD25 /* text_in_color.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A27FF6A229974A200CFAD25 /* text_in_color.h */; };
+		3A27FF71229974FD00CFAD25 /* tls_cli.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A27FF6F229974FD00CFAD25 /* tls_cli.h */; };
+		3A27FF72229974FD00CFAD25 /* tls_cli.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A27FF6F229974FD00CFAD25 /* tls_cli.h */; };
+		3A27FF73229974FD00CFAD25 /* tls_cli.c in Sources */ = {isa = PBXBuildFile; fileRef = 3A27FF70229974FD00CFAD25 /* tls_cli.c */; };
+		3A27FF74229974FD00CFAD25 /* tls_cli.c in Sources */ = {isa = PBXBuildFile; fileRef = 3A27FF70229974FD00CFAD25 /* tls_cli.c */; };
+		3A27FF88229978B500CFAD25 /* bio.c in Sources */ = {isa = PBXBuildFile; fileRef = 3A27FF85229978B500CFAD25 /* bio.c */; };
+		3A27FF89229978B500CFAD25 /* bio.c in Sources */ = {isa = PBXBuildFile; fileRef = 3A27FF85229978B500CFAD25 /* bio.c */; };
+		3A27FF8A229978B500CFAD25 /* uv-mbed.c in Sources */ = {isa = PBXBuildFile; fileRef = 3A27FF86229978B500CFAD25 /* uv-mbed.c */; };
+		3A27FF8B229978B500CFAD25 /* uv-mbed.c in Sources */ = {isa = PBXBuildFile; fileRef = 3A27FF86229978B500CFAD25 /* uv-mbed.c */; };
+		3A27FF8C229978B500CFAD25 /* bio.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A27FF87229978B500CFAD25 /* bio.h */; };
+		3A27FF8D229978B500CFAD25 /* bio.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A27FF87229978B500CFAD25 /* bio.h */; };
+		3A27FF8F229978C500CFAD25 /* uv-mbed.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A27FF8E229978C500CFAD25 /* uv-mbed.h */; };
+		3A27FF90229978C500CFAD25 /* uv-mbed.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A27FF8E229978C500CFAD25 /* uv-mbed.h */; };
+		3A27FF93229979F300CFAD25 /* dump_info.c in Sources */ = {isa = PBXBuildFile; fileRef = 3A27FF91229979F200CFAD25 /* dump_info.c */; };
+		3A27FF94229979F300CFAD25 /* dump_info.c in Sources */ = {isa = PBXBuildFile; fileRef = 3A27FF91229979F200CFAD25 /* dump_info.c */; };
+		3A27FF95229979F300CFAD25 /* dump_info.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A27FF92229979F300CFAD25 /* dump_info.h */; };
+		3A27FF96229979F300CFAD25 /* dump_info.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A27FF92229979F300CFAD25 /* dump_info.h */; };
 		3A300B11206FF45500ABE7C2 /* libsodium.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3A300B02206FF41B00ABE7C2 /* libsodium.framework */; };
 		3A300B12206FF45500ABE7C2 /* libuv.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3A300B09206FF42E00ABE7C2 /* libuv.framework */; };
 		3A300B13206FF45500ABE7C2 /* mbedtls.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3A26B218206FB2EB0084360E /* mbedtls.framework */; };
@@ -204,6 +224,16 @@
 
 /* Begin PBXFileReference section */
 		3A26B213206FB2EB0084360E /* mbedtls.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = mbedtls.xcodeproj; path = ../depends/mbedtls/ios/mbedtls.xcodeproj; sourceTree = "<group>"; };
+		3A27FF69229974A100CFAD25 /* text_in_color.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = text_in_color.c; path = ../src/text_in_color.c; sourceTree = "<group>"; };
+		3A27FF6A229974A200CFAD25 /* text_in_color.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = text_in_color.h; path = ../src/text_in_color.h; sourceTree = "<group>"; };
+		3A27FF6F229974FD00CFAD25 /* tls_cli.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = tls_cli.h; path = ../src/client/tls_cli.h; sourceTree = "<group>"; };
+		3A27FF70229974FD00CFAD25 /* tls_cli.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = tls_cli.c; path = ../src/client/tls_cli.c; sourceTree = "<group>"; };
+		3A27FF85229978B500CFAD25 /* bio.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = bio.c; path = "../../depends/uv-mbed/src/bio.c"; sourceTree = "<group>"; };
+		3A27FF86229978B500CFAD25 /* uv-mbed.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "uv-mbed.c"; path = "../../depends/uv-mbed/src/uv-mbed.c"; sourceTree = "<group>"; };
+		3A27FF87229978B500CFAD25 /* bio.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = bio.h; path = "../../depends/uv-mbed/src/bio.h"; sourceTree = "<group>"; };
+		3A27FF8E229978C500CFAD25 /* uv-mbed.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "uv-mbed.h"; path = "../../depends/uv-mbed/include/uv-mbed/uv-mbed.h"; sourceTree = "<group>"; };
+		3A27FF91229979F200CFAD25 /* dump_info.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dump_info.c; path = ../src/dump_info.c; sourceTree = "<group>"; };
+		3A27FF92229979F300CFAD25 /* dump_info.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = dump_info.h; path = ../src/dump_info.h; sourceTree = "<group>"; };
 		3A300AFD206FF41B00ABE7C2 /* libsodium.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = libsodium.xcodeproj; path = ../depends/libsodium/ios/libsodium.xcodeproj; sourceTree = "<group>"; };
 		3A300B04206FF42E00ABE7C2 /* libuv.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = libuv.xcodeproj; path = ../depends/libuv/ios/libuv.xcodeproj; sourceTree = "<group>"; };
 		3A300B15206FF53E00ABE7C2 /* obfs.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = obfs.c; path = ../src/obfs/obfs.c; sourceTree = "<group>"; };
@@ -294,6 +324,17 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		3A27FF842299789200CFAD25 /* uv-mbed */ = {
+			isa = PBXGroup;
+			children = (
+				3A27FF8E229978C500CFAD25 /* uv-mbed.h */,
+				3A27FF85229978B500CFAD25 /* bio.c */,
+				3A27FF87229978B500CFAD25 /* bio.h */,
+				3A27FF86229978B500CFAD25 /* uv-mbed.c */,
+			);
+			path = "uv-mbed";
+			sourceTree = "<group>";
+		};
 		3A300AFE206FF41B00ABE7C2 /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -355,6 +396,8 @@
 				3A300B44206FF58300ABE7C2 /* listener.c */,
 				3A300B42206FF58200ABE7C2 /* s5.c */,
 				3A300B3E206FF58200ABE7C2 /* s5.h */,
+				3A27FF70229974FD00CFAD25 /* tls_cli.c */,
+				3A27FF6F229974FD00CFAD25 /* tls_cli.h */,
 			);
 			name = client;
 			sourceTree = "<group>";
@@ -362,6 +405,10 @@
 		3A300B4C206FF5EA00ABE7C2 /* src */ = {
 			isa = PBXGroup;
 			children = (
+				3A27FF91229979F200CFAD25 /* dump_info.c */,
+				3A27FF92229979F300CFAD25 /* dump_info.h */,
+				3A27FF69229974A100CFAD25 /* text_in_color.c */,
+				3A27FF6A229974A200CFAD25 /* text_in_color.h */,
 				3A9CCE3520CE318200D9E0DC /* tunnel.c */,
 				3A9CCE3420CE318200D9E0DC /* tunnel.h */,
 				3A95CC072070D26000E507E3 /* udprelay.c */,
@@ -395,6 +442,7 @@
 				3A300B04206FF42E00ABE7C2 /* libuv.xcodeproj */,
 				3A300AFD206FF41B00ABE7C2 /* libsodium.xcodeproj */,
 				3A26B213206FB2EB0084360E /* mbedtls.xcodeproj */,
+				3A27FF842299789200CFAD25 /* uv-mbed */,
 				3A300B3D206FF55B00ABE7C2 /* client */,
 				3A300B14206FF50B00ABE7C2 /* obfs */,
 				3A300B4C206FF5EA00ABE7C2 /* src */,
@@ -440,13 +488,18 @@
 				3A300B2C206FF54000ABE7C2 /* auth.h in Headers */,
 				3A300B35206FF54000ABE7C2 /* http_simple.h in Headers */,
 				3A57A60C206F9D44002F1F2D /* ssrNative.h in Headers */,
+				3A27FF8F229978C500CFAD25 /* uv-mbed.h in Headers */,
+				3A27FF8C229978B500CFAD25 /* bio.h in Headers */,
 				3A300B57206FF66500ABE7C2 /* common.h in Headers */,
 				3A300B2A206FF54000ABE7C2 /* verify.h in Headers */,
 				3A300B38206FF54000ABE7C2 /* obfs.h in Headers */,
 				3A300B30206FF54000ABE7C2 /* obfsutil.h in Headers */,
 				3A300B3A206FF54000ABE7C2 /* crc32.h in Headers */,
+				3A27FF6D229974A200CFAD25 /* text_in_color.h in Headers */,
+				3A27FF71229974FD00CFAD25 /* tls_cli.h in Headers */,
 				3A300B58206FF66500ABE7C2 /* encrypt.h in Headers */,
 				3A300B76206FFA0A00ABE7C2 /* ssrutils.h in Headers */,
+				3A27FF95229979F300CFAD25 /* dump_info.h in Headers */,
 				3A300B39206FF54000ABE7C2 /* auth_chain.h in Headers */,
 				3A95CC0B2070D26100E507E3 /* udprelay.h in Headers */,
 				3A300B69206FF69D00ABE7C2 /* ssr_cipher_names.h in Headers */,
@@ -473,13 +526,18 @@
 				3A95CBC42070C92200E507E3 /* auth_chain.h in Headers */,
 				3A95CBB02070C8D000E507E3 /* sockaddr_universal.h in Headers */,
 				3A95CBB92070C8FD00E507E3 /* encrypt.h in Headers */,
+				3A27FF90229978C500CFAD25 /* uv-mbed.h in Headers */,
+				3A27FF8D229978B500CFAD25 /* bio.h in Headers */,
 				3A95CBB22070C8D000E507E3 /* ssr_executive.h in Headers */,
 				3A95CBD02070C92200E507E3 /* obfs.h in Headers */,
 				3A95CBD22070C92200E507E3 /* obfsutil.h in Headers */,
 				3A95CBB82070C8FD00E507E3 /* dump_info.h in Headers */,
 				3A95CBB62070C8FD00E507E3 /* ssrbuffer.h in Headers */,
+				3A27FF6E229974A200CFAD25 /* text_in_color.h in Headers */,
+				3A27FF72229974FD00CFAD25 /* tls_cli.h in Headers */,
 				3A95CBB32070C8D000E507E3 /* ssr_qr_code.h in Headers */,
 				3A95CBB12070C8D000E507E3 /* ssr_cipher_names.h in Headers */,
+				3A27FF96229979F300CFAD25 /* dump_info.h in Headers */,
 				3A95CBCC2070C92200E507E3 /* cstl_lib.h in Headers */,
 				3A95CBB52070C8FD00E507E3 /* cache.h in Headers */,
 				3A95CC0C2070D26100E507E3 /* udprelay.h in Headers */,
@@ -658,6 +716,7 @@
 				3A300B49206FF58300ABE7C2 /* s5.c in Sources */,
 				3A300B29206FF54000ABE7C2 /* obfs.c in Sources */,
 				3A300B2F206FF54000ABE7C2 /* auth.c in Sources */,
+				3A27FF6B229974A200CFAD25 /* text_in_color.c in Sources */,
 				3A300B33206FF54000ABE7C2 /* verify.c in Sources */,
 				3A300B75206FFA0A00ABE7C2 /* ssrutils.c in Sources */,
 				3A300B2E206FF54000ABE7C2 /* obfsutil.c in Sources */,
@@ -668,6 +727,7 @@
 				3A300B68206FF69D00ABE7C2 /* ssr_cipher_names.c in Sources */,
 				3A300B32206FF54000ABE7C2 /* crc32.c in Sources */,
 				3A300B2B206FF54000ABE7C2 /* http_simple.c in Sources */,
+				3A27FF88229978B500CFAD25 /* bio.c in Sources */,
 				3A300B34206FF54000ABE7C2 /* base64.c in Sources */,
 				3A300B4B206FF58300ABE7C2 /* listener.c in Sources */,
 				3A300B48206FF58300ABE7C2 /* client.c in Sources */,
@@ -675,8 +735,11 @@
 				3A300B36206FF54000ABE7C2 /* auth_chain.c in Sources */,
 				3A300B31206FF54000ABE7C2 /* tls1.2_ticket.c in Sources */,
 				3A300B3B206FF54000ABE7C2 /* cstl_lib.c in Sources */,
+				3A27FF73229974FD00CFAD25 /* tls_cli.c in Sources */,
 				3A300B65206FF69D00ABE7C2 /* ssr_executive.c in Sources */,
 				3A300B55206FF66500ABE7C2 /* dump_info.c in Sources */,
+				3A27FF93229979F300CFAD25 /* dump_info.c in Sources */,
+				3A27FF8A229978B500CFAD25 /* uv-mbed.c in Sources */,
 				3A300B56206FF66500ABE7C2 /* encrypt.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -689,6 +752,7 @@
 				3A95CBD52070C92200E507E3 /* verify.c in Sources */,
 				3A95CBD92070C92D00E507E3 /* listener.c in Sources */,
 				3A95CBDA2070C92D00E507E3 /* s5.c in Sources */,
+				3A27FF6C229974A200CFAD25 /* text_in_color.c in Sources */,
 				3A95CBCF2070C92200E507E3 /* obfs.c in Sources */,
 				3A95CBC52070C92200E507E3 /* auth.c in Sources */,
 				3A95CBCD2070C92200E507E3 /* http_simple.c in Sources */,
@@ -699,6 +763,7 @@
 				3A95CBBD2070C90C00E507E3 /* sockaddr_universal.c in Sources */,
 				3A95CBD72070C92C00E507E3 /* client.c in Sources */,
 				3A95CBBC2070C90C00E507E3 /* ssrbuffer.c in Sources */,
+				3A27FF89229978B500CFAD25 /* bio.c in Sources */,
 				3A95CBBF2070C90C00E507E3 /* ssr_executive.c in Sources */,
 				3A95CBC22070C90C00E507E3 /* encrypt.c in Sources */,
 				3A95CBC92070C92200E507E3 /* crc32.c in Sources */,
@@ -706,8 +771,11 @@
 				3A95CBC12070C90C00E507E3 /* dump_info.c in Sources */,
 				3A95CBC32070C92200E507E3 /* auth_chain.c in Sources */,
 				3A95CBBB2070C90C00E507E3 /* cache.c in Sources */,
+				3A27FF74229974FD00CFAD25 /* tls_cli.c in Sources */,
 				3A95CBC72070C92200E507E3 /* base64.c in Sources */,
 				3A95CBBA2070C90C00E507E3 /* ssrutils.c in Sources */,
+				3A27FF94229979F300CFAD25 /* dump_info.c in Sources */,
+				3A27FF8B229978B500CFAD25 /* uv-mbed.c in Sources */,
 				3A95CBCB2070C92200E507E3 /* cstl_lib.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -887,6 +955,7 @@
 					../depends/libsodium/src/libsodium/include/sodium,
 					../depends/libsodium/ssrbuild/include,
 					../depends/mbedtls/include,
+					"../depends/uv-mbed/include",
 				);
 				INFOPLIST_FILE = ssrNative/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
@@ -921,6 +990,7 @@
 					../depends/libsodium/src/libsodium/include/sodium,
 					../depends/libsodium/ssrbuild/include,
 					../depends/mbedtls/include,
+					"../depends/uv-mbed/include",
 				);
 				INFOPLIST_FILE = ssrNative/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
