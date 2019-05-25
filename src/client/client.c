@@ -650,7 +650,7 @@ static void do_launch_streaming(struct tunnel_ctx *tunnel) {
         return;
     }
 
-    socket_read(incoming, true);
+    socket_read(incoming, false);
     socket_read(outgoing, true);
     ctx->stage = tunnel_stage_streaming;
 }
