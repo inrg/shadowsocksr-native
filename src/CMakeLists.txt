@@ -1,3 +1,5 @@
+set(SSR_MAIN_DIR ${CMAKE_CURRENT_SOURCE_DIR} CACHE INTERNAL "SSR main directory" FORCE)
+
 set(SOURCE_FILES_SNI
         shadowsocks.h
         socks5.h
@@ -70,6 +72,12 @@ set(SOURCE_FILES_CLIENT
         tunnel.c
         tunnel.h
         client/client.c
+        client/tls_cli.c
+        client/tls_cli.h
+        picohttpparser.c
+        picohttpparser.h
+        text_in_color.c
+        text_in_color.h
         dump_info.c
         dump_info.h
         cmd_line_parser.c
@@ -90,6 +98,8 @@ set(SOURCE_FILES_TUNNEL
         tunnel.c)
 
 set(SOURCE_FILES_SERVER
+        text_in_color.c
+        text_in_color.h
         dump_info.c
         dump_info.h
         ssrutils.h
@@ -149,6 +159,7 @@ include_directories(${PCRE_INCLUDE_DIR})
 
 if(USE_CRYPTO_MBEDTLS)
     include_directories(${MBEDTLS_ROOT_DIR}/include)
+    include_directories(${UVMBED_DIR}/include)
 endif()
 
 if (WIN32)
@@ -208,7 +219,7 @@ if (WIN32)
 endif()
 
 
-target_link_libraries(ssr-client ${ss_lib_net})
+target_link_libraries(ssr-client ${ss_lib_net} uv-mbed)
 
 target_link_libraries(ssr-local ${ss_lib_net})
 

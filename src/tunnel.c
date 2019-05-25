@@ -153,7 +153,7 @@ void tunnel_initialize(uv_tcp_t *listener, unsigned int idle_timeout, bool(*init
 
     if (success) {
         /* Wait for the initial packet. */
-        socket_read(incoming);
+        socket_read(incoming, true);
     } else {
         tunnel_shutdown(tunnel);
     }
@@ -176,28 +176,6 @@ void tunnel_shutdown(struct tunnel_ctx *tunnel) {
     socket_close(tunnel->outgoing);
 }
 
-void tunnel_process_streaming(struct tunnel_ctx *tunnel, struct socket_ctx *socket) {
-    struct socket_ctx *incoming = tunnel->incoming;
-    struct socket_ctx *outgoing = tunnel->outgoing;
-    struct socket_ctx *write_target = NULL;
-    struct client_ctx *ctx = (struct client_ctx *) tunnel->data;
-    uint8_t *buffer = NULL;
-    size_t len = 0;
-
-    ASSERT(socket == incoming || socket == outgoing);
-
-    socket->rdstate = socket_stop;
-
-    write_target = ((socket == incoming) ? outgoing : incoming);
-
-    ASSERT(tunnel->tunnel_extract_data);
-    buffer = tunnel->tunnel_extract_data(socket, &malloc, &len);
-    if (buffer && (len > 0)) {
-        socket_write(write_target, buffer, len);
-    }
-    free(buffer);
-}
-
 //
 // The logic is as follows: read when we don't write and write when we don't read.
 // That gives us back-pressure handling for free because if the peer
@@ -207,23 +185,34 @@ void tunnel_traditional_streaming(struct tunnel_ctx *tunnel, struct socket_ctx *
     struct socket_ctx *current_socket = socket;
     struct socket_ctx *target_socket = NULL;
 
+    // 当前 网口 肯定是 入网口 或者 出网口 .
     ASSERT(current_socket == tunnel->incoming || current_socket == tunnel->outgoing);
 
+    // 目标 网口 肯定是 当前 网口 的对立面，非此即彼 .
     target_socket = ((current_socket == tunnel->incoming) ? tunnel->outgoing : tunnel->incoming);
 
+    // 当前 网口 的状态肯定是 写妥了 或者 读妥了，二者必居其一，但不可能同时既是读妥又是写妥 .
     ASSERT((current_socket->wrstate == socket_done && current_socket->rdstate != socket_done) ||
            (current_socket->wrstate != socket_done && current_socket->rdstate == socket_done));
+
+    // 目标 网口 的读状态肯定不是读妥，写状态肯定不是写妥，而只可能是忙碌或者已停止 .
     ASSERT(target_socket->wrstate != socket_done && target_socket->rdstate != socket_done);
 
     if (current_socket->wrstate == socket_done) {
+        // 如果 当前 网口 的写状态是 写妥 :
         current_socket->wrstate = socket_stop;
         if (target_socket->rdstate == socket_stop) {
-            socket_read(target_socket);
+            // 目标网口 的读状态如果是已停止，则开始读目标网口 .
+            // 只对读取 出网口 做超时断开处理, 而对读取 入网口 不处理超时 .
+            // 这很重要, 否则可能数据传输不完整即被断开 .
+            socket_read(target_socket, (target_socket == tunnel->outgoing));
         }
     }
-
-    if (current_socket->rdstate == socket_done) {
+    else if (current_socket->rdstate == socket_done) {
+        // 当前 网口 的读状态是 读妥 :
         current_socket->rdstate = socket_stop;
+
+        // 目标 网口 的写状态 肯定 是 已停止, 可以再次写入了 .
         ASSERT(target_socket->wrstate == socket_stop);
         {
             size_t len = 0;
@@ -231,12 +220,16 @@ void tunnel_traditional_streaming(struct tunnel_ctx *tunnel, struct socket_ctx *
             ASSERT(tunnel->tunnel_extract_data);
             buf = tunnel->tunnel_extract_data(current_socket, &malloc, &len);
             if (buf /* && size > 0 */) {
+                // 从当前 网口 提取数据然后写入 目标 网口 .
                 socket_write(target_socket, buf, len);
             } else {
                 tunnel_shutdown(tunnel);
             }
             free(buf);
         }
+    }
+    else {
+        ASSERT(false);
     }
 }
 
@@ -306,11 +299,13 @@ static void socket_connect_done_cb(uv_connect_t *req, int status) {
     tunnel->tunnel_outgoing_connected_done(tunnel, c);
 }
 
-void socket_read(struct socket_ctx *c) {
+void socket_read(struct socket_ctx *c, bool check_timeout) {
     ASSERT(c->rdstate == socket_stop);
     VERIFY(0 == uv_read_start(&c->handle.stream, socket_alloc_cb, socket_read_done_cb));
     c->rdstate = socket_busy;
-    socket_timer_start(c);
+    if (check_timeout) {
+        socket_timer_start(c);
+    }
 }
 
 static void socket_read_done_cb(uv_stream_t *handle, ssize_t nread, const uv_buf_t *buf) {
@@ -544,7 +539,7 @@ void socket_dump_error_info(const char *title, struct socket_ctx *socket) {
         socks5_address_to_string(tunnel->desired_addr, addr, sizeof(addr));
         from = "_server_";
     } else {
-        union sockaddr_universal tmp;
+        union sockaddr_universal tmp = { 0 };
         int len = sizeof(tmp);
         uv_tcp_getpeername(&socket->handle.tcp, &tmp.addr, &len);
         universal_address_to_string(&tmp, addr, sizeof(addr));

@@ -8,13 +8,10 @@
 
 set(CMAKE_LEGACY_CYGWIN_WIN32 0)
 
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.0)
 set(PROJECT_NAME shadowsocksr-native)
 set(RELEASE_DATE 2015-09-03)
-project(${PROJECT_NAME})
-
-set(VERSION 2.5.6)
-
+project(${PROJECT_NAME} VERSION 0.6.0 LANGUAGES C)
 
 set(with_crypto_library "mbedtls" CACHE STRING "build with the given crypto library, TYPE=mbedtls")
 
@@ -33,8 +30,11 @@ add_subdirectory(libcork)
 add_subdirectory(libipset)
 add_subdirectory(depends/libuv)
 add_subdirectory(depends/json-c/staticbuild)
+add_subdirectory(depends/uv-mbed/win32)
 
 include_directories( ${CMAKE_CURRENT_BINARY_DIR} )
 
 add_subdirectory(libudns)
 add_subdirectory(src)
+
+add_subdirectory(win32/minicli)

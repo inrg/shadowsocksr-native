@@ -38,6 +38,8 @@ struct socket_ctx {
     const uv_buf_t *buf; /* Scratch space. Used to read data into. */
 };
 
+struct tls_cli_ctx;
+
 struct tunnel_ctx {
     void *data;
     bool terminated;
@@ -57,6 +59,11 @@ struct tunnel_ctx {
     size_t(*tunnel_get_alloc_size)(struct tunnel_ctx *tunnel, struct socket_ctx *socket, size_t suggested_size);
     uint8_t*(*tunnel_extract_data)(struct socket_ctx *socket, void*(*allocator)(size_t size), size_t *size);
     bool(*tunnel_is_in_streaming)(struct tunnel_ctx *tunnel);
+    struct tls_cli_ctx *tls_ctx;
+    void(*tunnel_tls_on_connection_established)(struct tunnel_ctx *tunnel);
+    void(*tunnel_tls_send_data)(struct tunnel_ctx *tunnel, const uint8_t *data, size_t size);
+    void(*tunnel_tls_on_data_received)(struct tunnel_ctx *tunnel, const uint8_t *data, size_t size);
+    void(*tunnel_tls_on_shutting_down)(struct tunnel_ctx *tunnel);
 };
 
 int uv_stream_fd(const uv_tcp_t *handle);
@@ -65,10 +72,9 @@ size_t _update_tcp_mss(struct socket_ctx *socket);
 
 void tunnel_initialize(uv_tcp_t *lx, unsigned int idle_timeout, bool(*init_done_cb)(struct tunnel_ctx *tunnel, void *p), void *p);
 void tunnel_shutdown(struct tunnel_ctx *tunnel);
-void tunnel_process_streaming(struct tunnel_ctx *tunnel, struct socket_ctx *socket);
 void tunnel_traditional_streaming(struct tunnel_ctx *tunnel, struct socket_ctx *socket);
 int socket_connect(struct socket_ctx *c);
-void socket_read(struct socket_ctx *c);
+void socket_read(struct socket_ctx *c, bool check_timeout);
 void socket_read_stop(struct socket_ctx *c);
 void socket_getaddrinfo(struct socket_ctx *c, const char *hostname);
 void socket_write(struct socket_ctx *c, const void *data, size_t len);

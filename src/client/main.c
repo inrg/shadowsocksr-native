@@ -132,6 +132,13 @@ void print_remote_info(const struct server_config *config) {
     if (config->obfs_param && strlen(config->obfs_param)) {
         pr_info("obfs_param       %s", config->obfs_param);
     }
+    if (config->over_tls_enable) {
+        pr_info(" ");
+        pr_warn("over TLS         %s", config->over_tls_enable ? "yes" : "no");
+        pr_info("over TLS domain  %s", config->over_tls_server_domain);
+        pr_info("over TLS path    %s", config->over_tls_path);
+        pr_info(" ");
+    }
     pr_info("udp relay        %s\n", config->udp ? "yes" : "no");
 }
 
@@ -141,7 +148,8 @@ void feedback_state(struct ssr_client_state *state, void *p) {
 }
 
 static void usage(void) {
-    printf("ShadowsocksR native client\n"
+    printf(""
+        "ShadowsocksR native client\n"
         "\n"
         "Usage:\n"
         "\n"
@@ -155,5 +163,4 @@ static void usage(void) {
         "  -h                     Show this help message.\n"
         "",
         get_app_name());
-    exit(1);
 }
