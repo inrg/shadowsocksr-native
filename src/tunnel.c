@@ -185,23 +185,32 @@ void tunnel_traditional_streaming(struct tunnel_ctx *tunnel, struct socket_ctx *
     struct socket_ctx *current_socket = socket;
     struct socket_ctx *target_socket = NULL;
 
+    // 当前 网口 肯定是 入网口 或者 出网口 .
     ASSERT(current_socket == tunnel->incoming || current_socket == tunnel->outgoing);
 
+    // 目标 网口 肯定是 当前 网口 的对立面，非此即彼 .
     target_socket = ((current_socket == tunnel->incoming) ? tunnel->outgoing : tunnel->incoming);
 
+    // 当前 网口 的状态肯定是 写妥了 或者 读妥了，二者必居其一，但不可能同时既是读妥又是写妥 .
     ASSERT((current_socket->wrstate == socket_done && current_socket->rdstate != socket_done) ||
            (current_socket->wrstate != socket_done && current_socket->rdstate == socket_done));
+
+    // 目标 网口 的读状态肯定不是读妥，写状态肯定不是写妥，而只可能是忙碌或者已停止 .
     ASSERT(target_socket->wrstate != socket_done && target_socket->rdstate != socket_done);
 
     if (current_socket->wrstate == socket_done) {
+        // 如果 当前 网口 的写状态是 写妥 :
         current_socket->wrstate = socket_stop;
         if (target_socket->rdstate == socket_stop) {
+            // 目标网口 的状态如果是已停止，则开始读目标网口 .
             socket_read(target_socket, true);
         }
     }
-
-    if (current_socket->rdstate == socket_done) {
+    else if (current_socket->rdstate == socket_done) {
+        // 当前 网口 的读状态是 读妥 :
         current_socket->rdstate = socket_stop;
+
+        // 目标 网口 的写状态 肯定 是 已停止, 可以再次写入了 .
         ASSERT(target_socket->wrstate == socket_stop);
         {
             size_t len = 0;
@@ -209,12 +218,16 @@ void tunnel_traditional_streaming(struct tunnel_ctx *tunnel, struct socket_ctx *
             ASSERT(tunnel->tunnel_extract_data);
             buf = tunnel->tunnel_extract_data(current_socket, &malloc, &len);
             if (buf /* && size > 0 */) {
+                // 从当前 网口 提取数据然后写入 目标 网口 .
                 socket_write(target_socket, buf, len);
             } else {
                 tunnel_shutdown(tunnel);
             }
             free(buf);
         }
+    }
+    else {
+        ASSERT(false);
     }
 }
 
