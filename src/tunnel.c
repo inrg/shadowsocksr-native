@@ -202,8 +202,10 @@ void tunnel_traditional_streaming(struct tunnel_ctx *tunnel, struct socket_ctx *
         // 如果 当前 网口 的写状态是 写妥 :
         current_socket->wrstate = socket_stop;
         if (target_socket->rdstate == socket_stop) {
-            // 目标网口 的状态如果是已停止，则开始读目标网口 .
-            socket_read(target_socket, true);
+            // 目标网口 的读状态如果是已停止，则开始读目标网口 .
+            // 只对读取 出网口 做超时断开处理, 而对读取 入网口 不处理超时 .
+            // 这很重要, 否则可能数据传输不完整即被断开 .
+            socket_read(target_socket, (target_socket == tunnel->outgoing));
         }
     }
     else if (current_socket->rdstate == socket_done) {
