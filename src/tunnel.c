@@ -113,7 +113,7 @@ static void tunnel_release(struct tunnel_ctx *tunnel) {
 }
 
 /* |incoming| has been initialized by listener.c when this is called. */
-void tunnel_initialize(uv_tcp_t *listener, unsigned int idle_timeout, bool(*init_done_cb)(struct tunnel_ctx *tunnel, void *p), void *p) {
+void tunnel_initialize(uv_tcp_t *listener, unsigned int idle_timeout, tunnel_init_done_cb init_done_cb, void *p) {
     struct socket_ctx *incoming;
     struct socket_ctx *outgoing;
     struct tunnel_ctx *tunnel;
