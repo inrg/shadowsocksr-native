@@ -93,7 +93,7 @@ static void tunnel_write_done(struct tunnel_ctx *tunnel, struct socket_ctx *sock
 static size_t tunnel_get_alloc_size(struct tunnel_ctx *tunnel, struct socket_ctx *socket, size_t suggested_size);
 static bool tunnel_is_in_streaming(struct tunnel_ctx *tunnel);
 static void tunnel_tls_do_launch_streaming(struct tunnel_ctx *tunnel);
-static void tunnel_tls_traditional_streaming(struct tunnel_ctx *tunnel, struct socket_ctx *socket);
+static void tunnel_tls_client_incoming_streaming(struct tunnel_ctx *tunnel, struct socket_ctx *socket);
 static void tunnel_tls_on_connection_established(struct tunnel_ctx *tunnel);
 static void tunnel_tls_on_data_received(struct tunnel_ctx *tunnel, const uint8_t *data, size_t size);
 static void tunnel_tls_on_shutting_down(struct tunnel_ctx *tunnel);
@@ -253,7 +253,7 @@ static void do_next(struct tunnel_ctx *tunnel, struct socket_ctx *socket) {
         }
         break;
     case tunnel_stage_tls_streaming:
-        tunnel_tls_traditional_streaming(tunnel, socket);
+        tunnel_tls_client_incoming_streaming(tunnel, socket);
         break;
     case tunnel_stage_streaming:
         tunnel_traditional_streaming(tunnel, socket);
@@ -759,25 +759,22 @@ static void tunnel_tls_do_launch_streaming(struct tunnel_ctx *tunnel) {
     }
 }
 
-void tunnel_tls_traditional_streaming(struct tunnel_ctx *tunnel, struct socket_ctx *socket) {
-    struct socket_ctx *current_socket = socket;
+void tunnel_tls_client_incoming_streaming(struct tunnel_ctx *tunnel, struct socket_ctx *socket) {
+    ASSERT(socket == tunnel->incoming);
 
-    ASSERT(current_socket == tunnel->incoming);
+    ASSERT((socket->wrstate == socket_done && socket->rdstate != socket_done) ||
+        (socket->wrstate != socket_done && socket->rdstate == socket_done));
 
-    ASSERT((current_socket->wrstate == socket_done && current_socket->rdstate != socket_done) ||
-        (current_socket->wrstate != socket_done && current_socket->rdstate == socket_done));
-
-    if (current_socket->wrstate == socket_done) {
-        current_socket->wrstate = socket_stop;
+    if (socket->wrstate == socket_done) {
+        socket->wrstate = socket_stop;
     }
-
-    if (current_socket->rdstate == socket_done) {
-        current_socket->rdstate = socket_stop;
+    else if (socket->rdstate == socket_done) {
+        socket->rdstate = socket_stop;
         {
             size_t len = 0;
             uint8_t *buf = NULL;
             ASSERT(tunnel->tunnel_extract_data);
-            buf = tunnel->tunnel_extract_data(current_socket, &malloc, &len);
+            buf = tunnel->tunnel_extract_data(socket, &malloc, &len);
             if (buf /* && size > 0 */) {
                 ASSERT(tunnel->tunnel_tls_send_data);
                 tunnel->tunnel_tls_send_data(tunnel, buf, len);
@@ -786,7 +783,10 @@ void tunnel_tls_traditional_streaming(struct tunnel_ctx *tunnel, struct socket_c
             }
             free(buf);
         }
-        socket_read(current_socket, false); ASSERT(false);
+        socket_read(socket, false);
+    }
+    else {
+        ASSERT(false);
     }
 }
 
@@ -800,7 +800,8 @@ static void tunnel_tls_on_connection_established(struct tunnel_ctx *tunnel) {
     ASSERT(outgoing->rdstate == socket_stop);
     ASSERT(outgoing->wrstate == socket_stop);
 
-    if (tunnel->tunnel_tls_send_data) {
+    ASSERT (tunnel->tunnel_tls_send_data);
+    {
         struct buffer_t *tmp = buffer_clone(ctx->init_pkg);
         if (ssr_ok != tunnel_cipher_client_encrypt(ctx->cipher, tmp)) {
             tls_client_shutdown(tunnel);
@@ -809,8 +810,6 @@ static void tunnel_tls_on_connection_established(struct tunnel_ctx *tunnel) {
             tunnel->tunnel_tls_send_data(tunnel, tmp->buffer, tmp->len);
         }
         buffer_release(tmp);
-    } else {
-    ASSERT(false);
     }
 }
 
