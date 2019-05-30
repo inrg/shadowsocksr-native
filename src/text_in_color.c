@@ -1,11 +1,11 @@
 #include <stdio.h>
-#if defined(WIN32)
+#if defined(WIN32) || defined(_WIN32)
 #include <windows.h>
 #endif
 #include "text_in_color.h"
 
 void print_text_in_color(FILE *file, const char *text, enum text_color color) {
-#if defined(WIN32)
+#if defined(WIN32) || defined(_WIN32)
     WORD wAttributes = 0;
     HANDLE  hConsole;
     CONSOLE_SCREEN_BUFFER_INFO csbiInfo = { 0 };

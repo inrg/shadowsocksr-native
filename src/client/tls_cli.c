@@ -95,7 +95,7 @@ static void _mbed_connect_done_cb(uv_mbed_t* mbed, int status, void *p) {
 
 static void _mbed_alloc_done_cb(uv_mbed_t *mbed, size_t suggested_size, uv_buf_t *buf, void *p) {
     char *base = (char *) calloc(suggested_size, sizeof(char));
-    *buf = uv_buf_init(base, suggested_size);
+    *buf = uv_buf_init(base, (unsigned int)suggested_size);
 }
 
 static void _mbed_data_received_cb(uv_mbed_t *mbed, ssize_t nread, uv_buf_t* buf, void *p) {
@@ -103,23 +103,13 @@ static void _mbed_data_received_cb(uv_mbed_t *mbed, ssize_t nread, uv_buf_t* buf
     struct tunnel_ctx *tunnel = ctx->tunnel;
     assert(ctx->mbed == mbed);
     if (nread > 0) {
-        char *ptmp = (char *)buf->base;
+        const uint8_t *ptmp = (uint8_t *)buf->base;
         size_t len0 = (size_t)nread;
-        if (ctx->header_parsed == false) {
-#define GET_REQUEST_END "\r\n\r\n"
-            char *px = strstr((char *)buf->base, GET_REQUEST_END);
-            if (px != NULL) {
-                ptmp = px + strlen(GET_REQUEST_END);
-                len0 = len0 - (size_t)(ptmp - buf->base);
-            }
-            ctx->header_parsed = true;
 
-#define CONTENT_LENGTH "Content-Length:"
-            px = strstr((char *)buf->base, CONTENT_LENGTH);
-            if (px) {
-                px = px + strlen(CONTENT_LENGTH);
-                ctx->file_size = (size_t) strtol(px, NULL, 10);
-            }
+        if (ctx->header_parsed == false) {
+            ptmp = extract_http_data((uint8_t *)buf->base, (size_t)nread, &len0);
+            ctx->header_parsed = true;
+            ctx->file_size = len0;
         }
 
         assert(tunnel->tunnel_tls_on_data_received);

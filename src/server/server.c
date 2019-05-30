@@ -16,6 +16,7 @@
 #include "tunnel.h"
 #include "daemon_wrapper.h"
 #include "cmd_line_parser.h"
+#include "ssrutils.h"
 
 #ifndef SSR_MAX_CONN
 #define SSR_MAX_CONN 1024
@@ -502,6 +503,7 @@ static size_t _get_read_size(struct tunnel_ctx *tunnel, struct socket_ctx *socke
 
 static void do_init_package(struct tunnel_ctx *tunnel, struct socket_ctx *incoming) {
     struct server_ctx *ctx = (struct server_ctx *) tunnel->data;
+    struct server_config *config = ctx->env->config;
     struct buffer_t *receipt = NULL;
     struct buffer_t *confirm = NULL;
     struct buffer_t *result = NULL;
@@ -520,6 +522,11 @@ static void do_init_package(struct tunnel_ctx *tunnel, struct socket_ctx *incomi
         ctx->cipher = tunnel_cipher_create(ctx->env, tcp_mss);
         ctx->_tcp_mss = tcp_mss;
 
+        if (config->over_tls_enable) {
+            size_t len = buf->len;
+            buf->buffer = (uint8_t *) extract_http_data(buf->buffer, buf->len, &len);
+            buf->len = len;
+        }
         result = tunnel_cipher_server_decrypt(ctx->cipher, buf, &receipt, &confirm);
 
         if (receipt) {
@@ -891,6 +898,13 @@ void print_server_info(const struct server_config *config) {
     pr_info("obfs             %s", config->obfs);
     if (config->obfs_param && strlen(config->obfs_param)) {
         pr_info("obfs_param       %s", config->obfs_param);
+    }
+    if (config->over_tls_enable) {
+        pr_info(" ");
+        pr_warn("over TLS         %s", config->over_tls_enable ? "yes" : "no");
+        pr_info("over TLS domain  %s", config->over_tls_server_domain);
+        pr_info("over TLS path    %s", config->over_tls_path);
+        pr_info(" ");
     }
     pr_info("udp relay        %s\n", config->udp ? "yes" : "no");
 }
