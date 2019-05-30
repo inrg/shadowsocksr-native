@@ -117,9 +117,6 @@
     <ClCompile Include="..\..\src\text_in_color.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\picohttpparser.c">
-      <Filter>server</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\encrypt.h">
@@ -229,9 +226,6 @@
     </ClInclude>
     <ClInclude Include="..\..\src\text_in_color.h">
       <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\picohttpparser.h">
-      <Filter>server</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
