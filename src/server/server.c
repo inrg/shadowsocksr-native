@@ -93,6 +93,8 @@ static void do_connect_host_start(struct tunnel_ctx *tunnel, struct socket_ctx *
 static void do_connect_host_done(struct tunnel_ctx *tunnel, struct socket_ctx *socket);
 static void do_launch_streaming(struct tunnel_ctx *tunnel, struct socket_ctx *socket);
 
+static void do_tls_init_package(struct tunnel_ctx *tunnel, struct socket_ctx *socket);
+
 static int resolved_ips_compare_key(const void *left, const void *right);
 static void resolved_ips_destroy_object(void *obj);
 
@@ -352,6 +354,7 @@ static void tunnel_dying(struct tunnel_ctx *tunnel) {
 static void do_next(struct tunnel_ctx *tunnel, struct socket_ctx *socket) {
     bool done = false;
     struct server_ctx *ctx = (struct server_ctx *)tunnel->data;
+    struct server_config *config = ctx->env->config;
     struct socket_ctx *incoming = tunnel->incoming;
     switch (ctx->stage) {
     case tunnel_stage_initial:
@@ -359,6 +362,10 @@ static void do_next(struct tunnel_ctx *tunnel, struct socket_ctx *socket) {
         ASSERT(incoming->rdstate == socket_done);
         ASSERT(incoming->wrstate == socket_stop);
         incoming->rdstate = socket_stop;
+        if (config->over_tls_enable) {
+            do_tls_init_package(tunnel, incoming);
+            break;
+        }
         do_init_package(tunnel, incoming);
         break;
     case tunnel_stage_receipt_done:
@@ -503,7 +510,6 @@ static size_t _get_read_size(struct tunnel_ctx *tunnel, struct socket_ctx *socke
 
 static void do_init_package(struct tunnel_ctx *tunnel, struct socket_ctx *incoming) {
     struct server_ctx *ctx = (struct server_ctx *) tunnel->data;
-    struct server_config *config = ctx->env->config;
     struct buffer_t *receipt = NULL;
     struct buffer_t *confirm = NULL;
     struct buffer_t *result = NULL;
@@ -522,14 +528,8 @@ static void do_init_package(struct tunnel_ctx *tunnel, struct socket_ctx *incomi
         ctx->cipher = tunnel_cipher_create(ctx->env, tcp_mss);
         ctx->_tcp_mss = tcp_mss;
 
-        if (config->over_tls_enable) {
-            size_t len = buf->len;
-            buf->buffer = (uint8_t *) extract_http_data(buf->buffer, buf->len, &len);
-            buf->len = len;
-            result = tunnel_tls_cipher_server_decrypt(ctx->cipher, buf, &receipt, &confirm);
-        } else {
-            result = tunnel_cipher_server_decrypt(ctx->cipher, buf, &receipt, &confirm);
-        }
+        result = tunnel_cipher_server_decrypt(ctx->cipher, buf, &receipt, &confirm);
+
         if (receipt) {
             ASSERT(confirm == NULL);
             socket_write(incoming, receipt->buffer, receipt->len);
@@ -634,7 +634,7 @@ static void do_handshake(struct tunnel_ctx *tunnel, struct socket_ctx *socket) {
     UNREACHABLE();
 }
 
-static void do_parse(struct tunnel_ctx *tunnel, struct socket_ctx *incoming) {
+static void do_parse(struct tunnel_ctx *tunnel, struct socket_ctx *socket) {
     /*
      * Shadowsocks TCP Relay Header, same as SOCKS5:
      *
@@ -664,7 +664,7 @@ static void do_parse(struct tunnel_ctx *tunnel, struct socket_ctx *incoming) {
     bool ipFound = true;
     struct buffer_t *init_pkg = ctx->init_pkg;
 
-    ASSERT(incoming == tunnel->incoming);
+    ASSERT(socket == tunnel->incoming);
 
     // get remote addr and port
     s5addr = tunnel->desired_addr;
@@ -831,6 +831,45 @@ static void do_launch_streaming(struct tunnel_ctx *tunnel, struct socket_ctx *so
     socket_read(outgoing, true);
     ctx->stage = tunnel_stage_streaming;
 }
+
+static void do_tls_init_package(struct tunnel_ctx *tunnel, struct socket_ctx *socket) {
+    struct server_ctx *ctx = (struct server_ctx *) tunnel->data;
+    struct server_config *config = ctx->env->config;
+    struct buffer_t *receipt = NULL;
+    struct buffer_t *confirm = NULL;
+    struct buffer_t *result = NULL;
+    do {
+        size_t tcp_mss = _update_tcp_mss(socket);
+
+        ASSERT(socket == tunnel->incoming);
+        ASSERT(config->over_tls_enable);
+
+        if (socket->result < 0) {
+            tunnel_shutdown(tunnel);
+            break;
+        }
+
+        ASSERT(ctx->cipher == NULL);
+        ctx->cipher = tunnel_cipher_create(ctx->env, tcp_mss);
+        ctx->_tcp_mss = tcp_mss;
+        {
+            size_t len = (size_t)socket->result;
+            const uint8_t *data = extract_http_data((uint8_t *)socket->buf->base, len, &len);
+            BUFFER_CONSTANT_INSTANCE(buf, data, len);
+            result = tunnel_tls_cipher_server_decrypt(ctx->cipher, buf, &receipt, &confirm);
+        }
+        ASSERT(receipt == NULL);
+        ASSERT(confirm == NULL);
+        ASSERT(result /* && result->len!=0 */);
+        buffer_replace(ctx->init_pkg, result);
+
+        do_prepare_parse(tunnel, socket);
+        break;
+    } while (0);
+
+    buffer_release(result);
+}
+
 
 static uint8_t* tunnel_extract_data(struct socket_ctx *socket, void*(*allocator)(size_t size), size_t *size) {
     struct tunnel_ctx *tunnel = socket->tunnel;
