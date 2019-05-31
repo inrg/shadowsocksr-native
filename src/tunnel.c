@@ -103,6 +103,8 @@ static void tunnel_release(struct tunnel_ctx *tunnel) {
         free(tunnel->outgoing);
 
         free(tunnel->desired_addr);
+
+        memset(tunnel, 0, sizeof(*tunnel));
         free(tunnel);
     }
 }
