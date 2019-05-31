@@ -526,9 +526,10 @@ static void do_init_package(struct tunnel_ctx *tunnel, struct socket_ctx *incomi
             size_t len = buf->len;
             buf->buffer = (uint8_t *) extract_http_data(buf->buffer, buf->len, &len);
             buf->len = len;
+            result = tunnel_tls_cipher_server_decrypt(ctx->cipher, buf, &receipt, &confirm);
+        } else {
+            result = tunnel_cipher_server_decrypt(ctx->cipher, buf, &receipt, &confirm);
         }
-        result = tunnel_cipher_server_decrypt(ctx->cipher, buf, &receipt, &confirm);
-
         if (receipt) {
             ASSERT(confirm == NULL);
             socket_write(incoming, receipt->buffer, receipt->len);
@@ -834,6 +835,7 @@ static void do_launch_streaming(struct tunnel_ctx *tunnel, struct socket_ctx *so
 static uint8_t* tunnel_extract_data(struct socket_ctx *socket, void*(*allocator)(size_t size), size_t *size) {
     struct tunnel_ctx *tunnel = socket->tunnel;
     struct server_ctx *ctx = (struct server_ctx *) tunnel->data;
+    struct server_config *config = ctx->env->config;
     struct tunnel_cipher_ctx *cipher_ctx = ctx->cipher;
     enum ssr_error error = ssr_error_client_decode;
     struct buffer_t *buf = NULL;
@@ -851,7 +853,12 @@ static uint8_t* tunnel_extract_data(struct socket_ctx *socket, void*(*allocator)
         } else if (socket == tunnel->incoming) {
             struct buffer_t *receipt = NULL;
             struct buffer_t *confirm = NULL;
-            buf = tunnel_cipher_server_decrypt(cipher_ctx, src, &receipt, &confirm);
+            if (config->over_tls_enable) {
+                ASSERT(false);
+                buf = tunnel_tls_cipher_server_decrypt(cipher_ctx, src, &receipt, &confirm);
+            } else {
+                buf = tunnel_cipher_server_decrypt(cipher_ctx, src, &receipt, &confirm);
+            }
             ASSERT(receipt == NULL);
             ASSERT(confirm == NULL);
         } else {

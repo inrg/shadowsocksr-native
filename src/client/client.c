@@ -795,7 +795,7 @@ static void tunnel_tls_on_connection_established(struct tunnel_ctx *tunnel) {
     ASSERT (tunnel->tunnel_tls_send_data);
     {
         struct buffer_t *tmp = buffer_clone(ctx->init_pkg);
-        if (ssr_ok != tunnel_cipher_client_encrypt(ctx->cipher, tmp)) {
+        if (ssr_ok != tunnel_tls_cipher_client_encrypt(ctx->cipher, tmp)) {
             tls_client_shutdown(tunnel);
         } else {
             ctx->stage = tunnel_stage_tls_first_package;
@@ -811,7 +811,7 @@ static void tunnel_tls_on_data_received(struct tunnel_ctx *tunnel, const uint8_t
     if (ctx->stage == tunnel_stage_tls_first_package) {
         struct buffer_t *tmp = buffer_create_from(data, size);
         struct buffer_t *feedback = NULL;
-        if (ssr_ok != tunnel_cipher_client_decrypt(ctx->cipher, tmp, &feedback)) {
+        if (ssr_ok != tunnel_tls_cipher_client_decrypt(ctx->cipher, tmp, &feedback)) {
             tls_client_shutdown(tunnel);
         } else {
             assert(!feedback);

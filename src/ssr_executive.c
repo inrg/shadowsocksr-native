@@ -540,6 +540,67 @@ tunnel_cipher_server_decrypt(struct tunnel_cipher_ctx *tc,
     return ret;
 }
 
+enum ssr_error tunnel_tls_cipher_client_encrypt(struct tunnel_cipher_ctx *tc, struct buffer_t *buf) {
+    int err;
+    struct server_env_t *env = tc->env;
+    ASSERT(buf->capacity >= SSR_BUFF_SIZE);
+    err = ss_encrypt(env->cipher, buf, tc->e_ctx, SSR_BUFF_SIZE);
+    if (err != 0) {
+        return ssr_error_invalid_password;
+    }
+    return ssr_ok;
+}
+
+enum ssr_error tunnel_tls_cipher_client_decrypt(struct tunnel_cipher_ctx *tc, struct buffer_t *buf, struct buffer_t **feedback) {
+    struct server_env_t *env = tc->env;
+    ASSERT(buf->len <= SSR_BUFF_SIZE);
+    if (feedback) { *feedback = NULL; }
+    if (buf->len > 0) {
+        int err = ss_decrypt(env->cipher, buf, tc->d_ctx, SSR_BUFF_SIZE);
+        if (err != 0) {
+            return ssr_error_invalid_password;
+        }
+    }
+    return ssr_ok;
+}
+
+struct buffer_t * tunnel_tls_cipher_server_encrypt(struct tunnel_cipher_ctx *tc, const struct buffer_t *buf) {
+    int err;
+    struct server_env_t *env = tc->env;
+    struct buffer_t *ret = NULL;
+    do {
+        ret = buffer_clone(buf);
+        if (ret == NULL) {
+            break;
+        }
+        err = ss_encrypt(env->cipher, ret, tc->e_ctx, SSR_BUFF_SIZE);
+        if (err != 0) {
+            ASSERT(false);
+            buffer_release(ret); ret = NULL;
+            break;
+        }
+    } while (0);
+    return ret;
+}
+
+struct buffer_t * tunnel_tls_cipher_server_decrypt(struct tunnel_cipher_ctx *tc, const struct buffer_t *buf, struct buffer_t **receipt, struct buffer_t **confirm) {
+    int err;
+    struct server_env_t *env = tc->env;
+    struct buffer_t *ret = NULL;
+
+    if (receipt) { *receipt = NULL; }
+    if (confirm) { *confirm = NULL; }
+
+    ret = buffer_clone(buf);
+
+    err = ss_decrypt(env->cipher, ret, tc->d_ctx, max(SSR_BUFF_SIZE, ret->capacity));
+    if (err != 0) {
+        buffer_release(ret); ret = NULL;
+    }
+
+    return ret;
+}
+
 bool pre_parse_header(struct buffer_t *data) {
     uint8_t datatype = 0;
     size_t rand_data_size = 0;
