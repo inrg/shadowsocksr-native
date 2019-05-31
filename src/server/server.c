@@ -97,7 +97,7 @@ static int resolved_ips_compare_key(const void *left, const void *right);
 static void resolved_ips_destroy_object(void *obj);
 
 void print_server_info(const struct server_config *config);
-static void usage(void);
+static void svr_usage(void);
 
 int main(int argc, char * const argv[]) {
     struct server_config *config = NULL;
@@ -160,7 +160,7 @@ int main(int argc, char * const argv[]) {
     config_release(config);
 
     if (err != 0) {
-        usage();
+        svr_usage();
     }
 #if __MEM_CHECK__
     _CrtDumpMemoryLeaks();
@@ -909,7 +909,7 @@ void print_server_info(const struct server_config *config) {
     pr_info("udp relay        %s\n", config->udp ? "yes" : "no");
 }
 
-static void usage(void) {
+static void svr_usage(void) {
     printf("ShadowsocksR native server\n"
         "\n"
         "Usage:\n"
