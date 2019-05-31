@@ -26,7 +26,7 @@ initialize(struct ipset_expanded_assignment *exp,
      * making sure not to go further than the caller requested. */
     ipset_variable  var;
 
-    ipset_variable  last_assignment = cork_array_size(&assignment->values);
+    ipset_variable  last_assignment = (ipset_variable) cork_array_size(&assignment->values);
     if (var_count < last_assignment) {
         last_assignment = var_count;
     }

@@ -218,7 +218,7 @@ ipset_node_cache_nonterminal(struct ipset_node_cache *cache,
 
     if (!is_new) {
         /* There's already a node with these contents, so return its ID. */
-        ipset_node_id  node_id = (uintptr_t) entry->value;
+        ipset_node_id  node_id = (ipset_node_id) (uintptr_t) entry->value;
         DEBUG("        [reuse  " IPSET_NODE_ID_FORMAT "]",
               IPSET_NODE_ID_VALUES(node_id));
         ipset_node_incref(cache, node_id);
