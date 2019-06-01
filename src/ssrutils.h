@@ -217,6 +217,9 @@ size_t ss_memory_size(void *ptr);
         }                   \
     } while (0)
 
+
+#define SSR_OVER_TLS_OK_RESPONSE "<body>SSR over TLS is OK</body>"
+
 const uint8_t * extract_http_data(const uint8_t *http_pkg, size_t size, size_t *data_size);
 
 #endif // __SSR_UTILS_H__

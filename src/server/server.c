@@ -43,6 +43,7 @@ enum tunnel_stage {
     tunnel_stage_resolve_host = 4,  /* Resolve the hostname             */
     tunnel_stage_connect_host,
     tunnel_stage_launch_streaming,
+    tunnel_stage_tls_client_feedback,
     tunnel_stage_streaming,  /* Stream between client and server */
 };
 
@@ -94,6 +95,8 @@ static void do_connect_host_done(struct tunnel_ctx *tunnel, struct socket_ctx *s
 static void do_launch_streaming(struct tunnel_ctx *tunnel, struct socket_ctx *socket);
 
 static void do_tls_init_package(struct tunnel_ctx *tunnel, struct socket_ctx *socket);
+static void do_tls_client_feedback(struct tunnel_ctx *tunnel);
+static void do_tls_launch_streaming(struct tunnel_ctx *tunnel, struct socket_ctx *socket);
 
 static int resolved_ips_compare_key(const void *left, const void *right);
 static void resolved_ips_destroy_object(void *obj);
@@ -398,6 +401,12 @@ static void do_next(struct tunnel_ctx *tunnel, struct socket_ctx *socket) {
         break;
     case tunnel_stage_launch_streaming:
         do_launch_streaming(tunnel, socket);
+        break;
+    case tunnel_stage_tls_client_feedback:
+        ASSERT(incoming == socket);
+        ASSERT(incoming->wrstate == socket_done);
+        incoming->wrstate = socket_stop;
+        do_tls_launch_streaming(tunnel, socket);
         break;
     case tunnel_stage_streaming:
         tunnel_traditional_streaming(tunnel, socket);
@@ -779,6 +788,7 @@ static void do_connect_host_done(struct tunnel_ctx *tunnel, struct socket_ctx *s
     struct socket_ctx *outgoing;
 
     struct server_ctx *ctx = (struct server_ctx *) tunnel->data;
+    struct server_config *config = ctx->env->config;
 
     incoming = tunnel->incoming;
     outgoing = tunnel->outgoing;
@@ -788,6 +798,12 @@ static void do_connect_host_done(struct tunnel_ctx *tunnel, struct socket_ctx *s
     ASSERT(incoming->wrstate == socket_stop);
     ASSERT(outgoing->rdstate == socket_stop);
     ASSERT(outgoing->wrstate == socket_stop);
+
+    if (config->over_tls_enable) {
+        ASSERT(ctx->init_pkg->len == 0);
+        do_tls_client_feedback(tunnel);
+        return;
+    }
 
     if (outgoing->result == 0) {
         struct buffer_t *init_pkg = ctx->init_pkg;
@@ -842,7 +858,7 @@ static void do_tls_init_package(struct tunnel_ctx *tunnel, struct socket_ctx *so
         size_t tcp_mss = _update_tcp_mss(socket);
 
         ASSERT(socket == tunnel->incoming);
-        ASSERT(config->over_tls_enable);
+        ASSERT(config->over_tls_enable); (void)config;
 
         if (socket->result < 0) {
             tunnel_shutdown(tunnel);
@@ -870,6 +886,46 @@ static void do_tls_init_package(struct tunnel_ctx *tunnel, struct socket_ctx *so
     buffer_release(result);
 }
 
+static void do_tls_client_feedback(struct tunnel_ctx *tunnel) {
+    struct server_ctx *ctx = (struct server_ctx *) tunnel->data;
+    struct server_config *config = ctx->env->config;
+    struct socket_ctx *incoming = tunnel->incoming;
+    BUFFER_CONSTANT_INSTANCE(tls_ok, SSR_OVER_TLS_OK_RESPONSE, strlen(SSR_OVER_TLS_OK_RESPONSE));
+    struct buffer_t *buf;
+
+    ASSERT(config->over_tls_enable); (void)config;
+
+    buf = tunnel_cipher_server_encrypt(ctx->cipher, tls_ok);
+    socket_write(incoming, buf->buffer, buf->len);
+    buffer_release(buf);
+
+    ctx->stage = tunnel_stage_tls_client_feedback;
+}
+
+static void do_tls_launch_streaming(struct tunnel_ctx *tunnel, struct socket_ctx *socket) {
+    struct server_ctx *ctx = (struct server_ctx *) tunnel->data;
+    struct server_config *config = ctx->env->config;
+    struct socket_ctx *incoming = tunnel->incoming;
+    struct socket_ctx *outgoing = tunnel->outgoing;
+
+    ASSERT(config->over_tls_enable); (void)config;
+
+    ASSERT(incoming == socket);
+    ASSERT(incoming->rdstate == socket_stop);
+    ASSERT(incoming->wrstate == socket_stop);
+    ASSERT(outgoing->rdstate == socket_stop);
+    ASSERT(outgoing->wrstate == socket_stop);
+
+    if (incoming->result < 0) {
+        pr_err("write error: %s", uv_strerror((int)incoming->result));
+        tunnel_shutdown(tunnel);
+        return;
+    }
+
+    socket_read(incoming, false);
+    socket_read(outgoing, true);
+    ctx->stage = tunnel_stage_streaming;
+}
 
 static uint8_t* tunnel_extract_data(struct socket_ctx *socket, void*(*allocator)(size_t size), size_t *size) {
     struct tunnel_ctx *tunnel = socket->tunnel;
@@ -888,12 +944,15 @@ static uint8_t* tunnel_extract_data(struct socket_ctx *socket, void*(*allocator)
     {
         BUFFER_CONSTANT_INSTANCE(src, socket->buf->base, socket->result);
         if (socket == tunnel->outgoing) {
-            buf = tunnel_cipher_server_encrypt(cipher_ctx, src);
+            if (config->over_tls_enable) {
+                buf = tunnel_tls_cipher_server_encrypt(cipher_ctx, buf);
+            } else {
+                buf = tunnel_cipher_server_encrypt(cipher_ctx, src);
+            }
         } else if (socket == tunnel->incoming) {
             struct buffer_t *receipt = NULL;
             struct buffer_t *confirm = NULL;
             if (config->over_tls_enable) {
-                ASSERT(false);
                 buf = tunnel_tls_cipher_server_decrypt(cipher_ctx, src, &receipt, &confirm);
             } else {
                 buf = tunnel_cipher_server_decrypt(cipher_ctx, src, &receipt, &confirm);
