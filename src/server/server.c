@@ -895,7 +895,7 @@ static void do_tls_client_feedback(struct tunnel_ctx *tunnel) {
 
     ASSERT(config->over_tls_enable); (void)config;
 
-    buf = tunnel_cipher_server_encrypt(ctx->cipher, tls_ok);
+    buf = tunnel_tls_cipher_server_encrypt(ctx->cipher, tls_ok);
     socket_write(incoming, buf->buffer, buf->len);
     buffer_release(buf);
 
