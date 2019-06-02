@@ -8,7 +8,11 @@
     "HTTP/1.1 101 Switching Protocols\r\n"                                      \
     "Upgrade: websocket\r\n"                                                    \
     "Connection: Upgrade\r\n"                                                   \
+    "Sec-WebSocket-Accept: Oy4NRAQ13jhfONC7bP8dTKb4PTU=\r\n"                    \
     "\r\n"
+
+// Sec-WebSocket-Accept = 
+//    toBase64( sha1( Sec-WebSocket-Key + 258EAFA5-E914-47DA-95CA-C5AB0DC85B11 ) )
 
 #define WEBSOCKET_REQUEST_FORMAT                                                \
     "GET %s HTTP/1.1\r\n"                                                       \
