@@ -93,6 +93,7 @@
     <ClInclude Include="..\..\src\ssrutils.h" />
     <ClInclude Include="..\..\src\ssr_cipher_names.h" />
     <ClInclude Include="..\..\src\udprelay.h" />
+    <ClInclude Include="..\..\src\ws_tls_const.h" />
     <ClInclude Include="..\include\getopt.h" />
     <ClInclude Include="..\include\getopt_long.h" />
     <ClInclude Include="..\include\stdbool.h" />

@@ -230,5 +230,8 @@
     <ClInclude Include="..\..\src\client\tls_cli.h">
       <Filter>client</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\ws_tls_const.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -17,6 +17,7 @@
 #include "daemon_wrapper.h"
 #include "cmd_line_parser.h"
 #include "ssrutils.h"
+#include "ws_tls_const.h"
 
 #ifndef SSR_MAX_CONN
 #define SSR_MAX_CONN 1024
@@ -890,14 +891,11 @@ static void do_tls_client_feedback(struct tunnel_ctx *tunnel) {
     struct server_ctx *ctx = (struct server_ctx *) tunnel->data;
     struct server_config *config = ctx->env->config;
     struct socket_ctx *incoming = tunnel->incoming;
-    BUFFER_CONSTANT_INSTANCE(tls_ok, SSR_OVER_TLS_OK_RESPONSE, strlen(SSR_OVER_TLS_OK_RESPONSE));
-    struct buffer_t *buf;
+    BUFFER_CONSTANT_INSTANCE(tls_ok, WEBSOCKET_RESPONSE, strlen(WEBSOCKET_RESPONSE));
 
     ASSERT(config->over_tls_enable); (void)config;
 
-    buf = tunnel_tls_cipher_server_encrypt(ctx->cipher, tls_ok);
-    socket_write(incoming, buf->buffer, buf->len);
-    buffer_release(buf);
+    socket_write(incoming, tls_ok->buffer, tls_ok->len);
 
     ctx->stage = tunnel_stage_tls_client_feedback;
 }

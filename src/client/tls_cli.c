@@ -24,19 +24,7 @@
 #include <string.h>
 #include <assert.h>
 #include "ssrutils.h"
-
-#define GET_REQUEST_FORMAT ""                                                               \
-    "POST %s HTTP/1.1\r\n"                                                                  \
-    "Host: %s:%d\r\n"                                                                       \
-    "User-Agent: Mozilla/5.0 (Windows NT 5.1; rv:52.0) Gecko/20100101 Firefox/52.0\r\n"     \
-    "Accept: text/html,application/xhtml+xml,application/octet-stream;q=0.9,*/*;q=0.8\r\n"  \
-    "Accept-Language: en-US,en;q=0.5\r\n"                                                   \
-    "Accept-Encoding: gzip, deflate\r\n"                                                    \
-    "Connection: keep-alive\r\n"                                                            \
-    "Upgrade-Insecure-Requests: 1\r\n"                                                      \
-    "Content-Type: application/octet-stream\r\n"                                            \
-    "Content-Length: %d\r\n"                                                                \
-    "\r\n"                                                                                  \
+#include "ws_tls_const.h"
 
 #define MAX_REQUEST_SIZE      0x8000
 
@@ -135,7 +123,7 @@ static void _tls_cli_send_data(struct tls_cli_ctx *ctx, const uint8_t *data, siz
     unsigned short domain_port = config->remote_port;
     uv_buf_t o;
     uint8_t *buf = (uint8_t *)calloc(MAX_REQUEST_SIZE + 1, sizeof(*buf));
-    int len = mbedtls_snprintf((char *)buf, MAX_REQUEST_SIZE, GET_REQUEST_FORMAT,
+    int len = mbedtls_snprintf((char *)buf, MAX_REQUEST_SIZE, WEBSOCKET_REQUEST_FORMAT,
         url_path, domain, domain_port, (int)size);
 
     if (data && size) {
