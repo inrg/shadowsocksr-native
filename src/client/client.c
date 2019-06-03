@@ -9,6 +9,7 @@
 #include "tunnel.h"
 #include "obfsutil.h"
 #include "tls_cli.h"
+#include "ws_tls_const.h"
 
 /* A connection is modeled as an abstraction on top of two simple state
  * machines, one for reading and one for writing.  Either state machine
@@ -786,6 +787,8 @@ static void tunnel_tls_on_connection_established(struct tunnel_ctx *tunnel) {
     struct socket_ctx *incoming = tunnel->incoming;
     struct socket_ctx *outgoing = tunnel->outgoing;
     struct client_ctx *ctx = (struct client_ctx *) tunnel->data;
+    struct server_env_t *env = ctx->env;
+    struct server_config *config = env->config;
 
     ASSERT(incoming->rdstate == socket_stop);
     ASSERT(incoming->wrstate == socket_stop);
@@ -795,11 +798,28 @@ static void tunnel_tls_on_connection_established(struct tunnel_ctx *tunnel) {
     ASSERT (tunnel->tunnel_tls_send_data);
     {
         struct buffer_t *tmp = buffer_clone(ctx->init_pkg);
-        if (ssr_ok != tunnel_tls_cipher_client_encrypt(ctx->cipher, tmp)) {
+        enum ssr_error e = tunnel_tls_cipher_client_encrypt(ctx->cipher, tmp);
+        if (ssr_ok != e) {
             tls_client_shutdown(tunnel);
         } else {
+            const char *url_path = config->over_tls_path;
+            const char *domain = config->over_tls_server_domain;
+            unsigned short domain_port = config->remote_port;
+            uint8_t *buf = (uint8_t *)calloc(MAX_REQUEST_SIZE, sizeof(*buf));
+            size_t len = 0;
+            sprintf((char *)buf, WEBSOCKET_REQUEST_FORMAT,
+                url_path, domain, domain_port, (int)tmp->len);
+            len = strlen((char *)buf);
+
+            if (tmp->buffer && tmp->len) {
+                memcpy(buf + len, tmp->buffer, tmp->len);
+                len += tmp->len;
+            }
+
+            tunnel->tunnel_tls_send_data(tunnel, buf, len);
             ctx->stage = tunnel_stage_tls_first_package;
-            tunnel->tunnel_tls_send_data(tunnel, tmp->buffer, tmp->len);
+
+            free(buf);
         }
         buffer_release(tmp);
     }

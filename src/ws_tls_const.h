@@ -1,6 +1,7 @@
 #ifndef __WS_TLS_CONST_H__
 #define __WS_TLS_CONST_H__
 
+#define MAX_REQUEST_SIZE      0x8000
 
 #define WEBSOCKET_STATUS_LINE "HTTP/1.1 101 Switching Protocols\r\n"
 
