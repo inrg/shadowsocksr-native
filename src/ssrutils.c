@@ -476,6 +476,8 @@ const uint8_t * extract_http_data(const uint8_t *http_pkg, size_t size, size_t *
         if (data_size) {
             *data_size = len0;
         }
+    } else {
+        ptmp = http_pkg;
     }
     return (uint8_t *)ptmp;
 }

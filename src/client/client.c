@@ -51,7 +51,7 @@ enum tunnel_stage {
     tunnel_stage_s5_request,        /* Wait for request data. */
     tunnel_stage_s5_udp_accoc,
     tunnel_stage_tls_connecting,
-    tunnel_stage_tls_first_package,
+    tunnel_stage_tls_websocket_upgrade,
     tunnel_stage_tls_streaming,
     tunnel_stage_resolve_ssr_server_host_done,       /* Wait for upstream hostname DNS lookup to complete. */
     tunnel_stage_connecting_ssr_server,      /* Wait for uv_tcp_connect() to complete. */
@@ -687,6 +687,7 @@ static uint8_t* tunnel_extract_data(struct socket_ctx *socket, void*(*allocator)
         *size = len;
         result = (uint8_t *)allocator(len + 1);
         memcpy(result, buf->buffer, len);
+        result[len] = 0;
     }
 
     buffer_release(buf);
@@ -817,7 +818,7 @@ static void tunnel_tls_on_connection_established(struct tunnel_ctx *tunnel) {
             }
 
             tunnel->tunnel_tls_send_data(tunnel, buf, len);
-            ctx->stage = tunnel_stage_tls_first_package;
+            ctx->stage = tunnel_stage_tls_websocket_upgrade;
 
             free(buf);
         }
@@ -828,18 +829,22 @@ static void tunnel_tls_on_connection_established(struct tunnel_ctx *tunnel) {
 static void tunnel_tls_on_data_received(struct tunnel_ctx *tunnel, const uint8_t *data, size_t size) {
     struct client_ctx *ctx = (struct client_ctx *) tunnel->data;
     struct socket_ctx *incoming = tunnel->incoming;
-    if (ctx->stage == tunnel_stage_tls_first_package) {
-        struct buffer_t *tmp = buffer_create_from(data, size);
-        struct buffer_t *feedback = NULL;
-        if (ssr_ok != tunnel_tls_cipher_client_decrypt(ctx->cipher, tmp, &feedback)) {
+    if (ctx->stage == tunnel_stage_tls_websocket_upgrade) {
+        if (0 != strncmp(WEBSOCKET_STATUS_LINE, (char *)data, strlen(WEBSOCKET_STATUS_LINE))) {
             tls_client_shutdown(tunnel);
         } else {
-            assert(!feedback);
             do_socks5_reply_success(tunnel);
         }
-        buffer_release(tmp);
         return;
     } else {
+        /*
+        ptmp = extract_http_data((uint8_t *)buf->base, (size_t)nread, &len0);
+        struct buffer_t *tmp = buffer_create_from(data, size);
+        struct buffer_t *feedback = NULL;
+        enum ssr_error e = tunnel_tls_cipher_client_decrypt(ctx->cipher, tmp, &feedback);
+        assert(!feedback);
+        buffer_release(tmp);
+        */
         ASSERT(false);
     }
 }

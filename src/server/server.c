@@ -877,7 +877,12 @@ static void do_tls_init_package(struct tunnel_ctx *tunnel, struct socket_ctx *so
         }
         ASSERT(receipt == NULL);
         ASSERT(confirm == NULL);
+
         ASSERT(result /* && result->len!=0 */);
+        if (is_legal_header(result) == false) {
+            tunnel_shutdown(tunnel);
+            break;
+        }
         buffer_replace(ctx->init_pkg, result);
 
         do_prepare_parse(tunnel, socket);

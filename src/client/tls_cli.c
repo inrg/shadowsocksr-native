@@ -29,9 +29,6 @@ struct tls_cli_ctx {
     struct tunnel_ctx *tunnel; /* weak pointer */
     struct server_config *config; /* weak pointer */
     uv_mbed_t *mbed;
-    bool header_parsed;
-    size_t file_size;
-    size_t progress_size;
 };
 
 static void tunnel_tls_send_data(struct tunnel_ctx *tunnel, const uint8_t *data, size_t size);
@@ -87,22 +84,13 @@ static void _mbed_data_received_cb(uv_mbed_t *mbed, ssize_t nread, uv_buf_t* buf
     struct tunnel_ctx *tunnel = ctx->tunnel;
     assert(ctx->mbed == mbed);
     if (nread > 0) {
-        const uint8_t *ptmp = (uint8_t *)buf->base;
-        size_t len0 = (size_t)nread;
-
-        if (ctx->header_parsed == false) {
-            ptmp = extract_http_data((uint8_t *)buf->base, (size_t)nread, &len0);
-            ctx->header_parsed = true;
-            ctx->file_size = len0;
-        }
-
         assert(tunnel->tunnel_tls_on_data_received);
         if (tunnel->tunnel_tls_on_data_received) {
-            tunnel->tunnel_tls_on_data_received(tunnel, (uint8_t *)ptmp, (size_t)len0);
+            tunnel->tunnel_tls_on_data_received(tunnel, (uint8_t *)buf->base, (size_t)nread);
         }
     } else if (nread < 0) {
         if (nread == UV_EOF) {
-            pr_info("=====================\nconnection closed\n");
+            pr_info("connection closed\n");
         } else {
             pr_err("read error %ld: %s\n", nread, uv_strerror((int) nread));
         }
@@ -118,8 +106,6 @@ static void _mbed_write_done_cb(uv_mbed_t *mbed, int status, void *p) {
     if (status < 0) {
         pr_err("write failed: %d: %s\n", status, uv_strerror(status));
         uv_mbed_close(mbed, _mbed_close_done_cb, p);
-    } else {
-        pr_info("request sent %d\n", status);
     }
 }
 

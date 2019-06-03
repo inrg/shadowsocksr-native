@@ -201,6 +201,12 @@ config.json
     "obfs_param": "",
     "local_address": "0.0.0.0",
     "local_port": 1080,
+    "over_tls_enable": false,
+    "over_tls_settings":{
+        "server_domain": "goodsitesample.com",
+        "path": "/udg151df/",
+        "root_cert_file": ""
+    },
     "udp": true,
     "timeout": 300
 }
