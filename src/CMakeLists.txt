@@ -74,6 +74,8 @@ set(SOURCE_FILES_CLIENT
         client/client.c
         client/tls_cli.c
         client/tls_cli.h
+        ws_tls_basic.c
+        ws_tls_basic.h
         text_in_color.c
         text_in_color.h
         dump_info.c
@@ -96,6 +98,8 @@ set(SOURCE_FILES_TUNNEL
         tunnel.c)
 
 set(SOURCE_FILES_SERVER
+        ws_tls_basic.c
+        ws_tls_basic.h
         text_in_color.c
         text_in_color.h
         dump_info.c
