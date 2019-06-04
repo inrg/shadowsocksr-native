@@ -123,6 +123,9 @@
     <ClCompile Include="..\..\src\client\tls_cli.c">
       <Filter>client</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\ws_tls_basic.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\encrypt.h">
@@ -230,7 +233,7 @@
     <ClInclude Include="..\..\src\client\tls_cli.h">
       <Filter>client</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\ws_tls_const.h">
+    <ClInclude Include="..\..\src\ws_tls_basic.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

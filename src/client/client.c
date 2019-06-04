@@ -9,7 +9,7 @@
 #include "tunnel.h"
 #include "obfsutil.h"
 #include "tls_cli.h"
-#include "ws_tls_const.h"
+#include "ws_tls_basic.h"
 
 /* A connection is modeled as an abstraction on top of two simple state
  * machines, one for reading and one for writing.  Either state machine

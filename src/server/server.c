@@ -17,7 +17,7 @@
 #include "daemon_wrapper.h"
 #include "cmd_line_parser.h"
 #include "ssrutils.h"
-#include "ws_tls_const.h"
+#include "ws_tls_basic.h"
 
 #ifndef SSR_MAX_CONN
 #define SSR_MAX_CONN 1024
