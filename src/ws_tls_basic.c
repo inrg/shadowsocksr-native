@@ -342,18 +342,10 @@ uint8_t * websocket_retrieve_payload(const uint8_t *data, size_t dataLen, void*(
 
     if (flagMask) {
         // 解包数据使用掩码时, 使用异或解码, maskKey[4] 依次和数据异或运算 .
-        uint8_t *iter =  package;
         size_t i;
-        for(i = 0, count = 0; i < len; i++) {
-            uint8_t temp1 = maskKey[count];
-            uint8_t temp2 = data[i + packageHeadLen];
-            // 异或运算后得到数据...
-            *iter++ =  (uint8_t)(((~temp1)&temp2) | (temp1&(~temp2)));
-            count += 1;
-            if (count >= sizeof(maskKey)) {
-                // maskKey[4] 循环使用...
-                count = 0;
-            }
+        for (i = 0; i < len; i++) {
+            uint8_t mask = maskKey[i % 4]; // maskKey[4] 循环使用 .
+            package[i] = data[i + packageHeadLen] ^ mask;
         }
     } else {
         // 解包数据没使用掩码, 直接复制数据段...
