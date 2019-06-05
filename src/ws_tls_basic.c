@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
+#include <stdbool.h>
 #include <mbedtls/sha1.h>
 #include <mbedtls/base64.h>
 
@@ -14,6 +16,27 @@
 #endif
 
 #include "ws_tls_basic.h"
+
+
+#include <mbedtls/ctr_drbg.h>
+#include <mbedtls/entropy.h>
+
+void random_bytes_generator(const char *seed, uint8_t *output, size_t len) {
+    mbedtls_ctr_drbg_context ctr_drbg;
+    mbedtls_entropy_context entropy;
+
+    if (seed==NULL || strlen(seed)==0 || output==NULL || len==0) {
+        return;
+    }
+
+    mbedtls_entropy_init(&entropy);
+    mbedtls_ctr_drbg_init(&ctr_drbg);
+    mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy, (unsigned char *)seed, strlen(seed));
+    mbedtls_ctr_drbg_set_prediction_resistance(&ctr_drbg, MBEDTLS_CTR_DRBG_PR_OFF);
+    mbedtls_ctr_drbg_random(&ctr_drbg, output, len);
+    mbedtls_entropy_free(&entropy);
+    mbedtls_ctr_drbg_free(&ctr_drbg);
+}
 
 const uint8_t * extract_http_data(const uint8_t *http_pkg, size_t size, size_t *data_size) {
     char *ptmp = (char *)http_pkg;
@@ -162,8 +185,8 @@ unsigned char * websocket_server_build_frame(const char *payload, size_t payload
     memset(frame_buf, 0, payload_len + 10 + 1);
 
     // FIN = 1 (it's the last message) RSV1 = 0, RSV2 = 0, RSV3 =
-    // 0 OpCode(4b) = 1 (text)
-    frame_buf[0] = 0x81;
+    // 0 OpCode(4b) = 1 (binary frame)
+    frame_buf[0] = 0x82;
 
     if (payload_len < 126) {
         offset = 2;
@@ -188,6 +211,154 @@ unsigned char * websocket_server_build_frame(const char *payload, size_t payload
     return frame_buf;
 }
 
-unsigned char * websocket_client_retrieve_payload(unsigned char *buf, size_t len, void*(*allocator)(size_t), size_t *payload_len) {
-    return NULL;
+unsigned char * websocket_client_build_frame(const char *payload, size_t payload_len, void*(*allocator)(size_t), size_t *frame_len) {
+    unsigned char mask[4];
+    unsigned char finNopcode;
+    size_t payload_len_small;
+    unsigned int payload_offset = 6;
+    size_t len_size;
+    size_t i;
+    size_t frame_size;
+    unsigned char *data;
+
+    if (payload==NULL || payload_len==0 || allocator==NULL) {
+        return NULL;
+    }
+
+    // https://github.com/OlehKulykov/librws/blob/master/src/rws_frame.c
+    // https://github.com/payden/libwsclient/blob/master/wsclient.c#L991
+
+    finNopcode = 0x82; // FIN and binary opcode.
+    if(payload_len <= 125) {
+        frame_size = 6 + payload_len;
+        payload_len_small = payload_len;
+    } else if(payload_len > 125 && payload_len <= 0xffff) {
+        frame_size = 8 + payload_len;
+        payload_len_small = 126;
+        payload_offset += 2;
+    } else if(payload_len > 0xffff && payload_len <= 0xffffffffffffffffLL) {
+        frame_size = 14 + payload_len;
+        payload_len_small = 127;
+        payload_offset += 8;
+    } else {
+        assert(0);
+        return NULL;
+    }
+    data = (unsigned char *) allocator(frame_size + 1);
+    memset(data, 0, frame_size + 1);
+    *data = finNopcode;
+    *(data+1) = ((uint8_t)payload_len_small) | 0x80; // payload length with mask bit on
+    if(payload_len_small == 126) {
+        payload_len &= 0xffff;
+        len_size = 2;
+        for(i = 0; i < len_size; i++) {
+            *(data+2+i) = *((unsigned char *)&payload_len+(len_size-i-1));
+        }
+    }
+    if(payload_len_small == 127) {
+        payload_len &= 0xffffffffffffffffLL;
+        len_size = 8;
+        for(i = 0; i < len_size; i++) {
+            *(data+2+i) = *((unsigned char *)&payload_len+(len_size-i-1));
+        }
+    }
+
+    random_bytes_generator("RANDOM_GEN", mask, sizeof(mask));
+    for(i=0; i<4; i++) {
+        *(data+(payload_offset-4)+i) = mask[i];
+    }
+    memcpy(data+payload_offset, payload, payload_len);
+    for(i=0; i<payload_len; i++) {
+        *(data+payload_offset+i) ^= mask[i % 4] & 0xff;
+    }
+
+    if (frame_len) {
+        *frame_len  = frame_size;
+    }
+    return data;
 }
+
+uint8_t * websocket_retrieve_payload(const uint8_t *data, size_t dataLen, void*(*allocator)(size_t), size_t *packageLen)
+{
+    unsigned char *package = NULL;
+    bool flagFIN = false, flagMask = false;
+    unsigned char maskKey[4] = {0};
+    char Opcode;
+    size_t count = 0;
+    size_t len = 0;
+    size_t packageHeadLen = 0;
+
+    if (allocator == NULL) { return NULL; }
+
+    if (dataLen < 2) { return NULL; }
+
+    // https://tools.ietf.org/html/draft-ietf-hybi-thewebsocketprotocol-13#section-5 
+
+    Opcode = (data[0] & 0x0F);
+
+    if ((data[0] & 0x80) == 0x80) {
+        flagFIN = true;
+    }
+
+    if ((data[1] & 0x80) == 0x80) {
+        flagMask = true;
+        count = 4;
+    }
+
+    len = (size_t)(data[1] & 0x7F);
+    if (len == 126) {
+        if(dataLen < 4) { return NULL; }
+        len = (size_t) ntohs( *((uint16_t *)(data + 2)) );
+        packageHeadLen = 4 + count;
+        if (flagMask) {
+            memcpy(maskKey, data + 4, 4);
+        }
+    }
+    else if (len == 127) {
+        if (dataLen < 10) { return NULL; }
+        // 使用 8 个字节存储长度时, 前 4 位必须为 0, 装不下那么多数据 .
+        if(data[2] != 0 || data[3] != 0 || data[4] != 0 || data[5] != 0) {
+            return NULL;
+        }
+        len = (size_t) ntohl( *((uint32_t *)(data + 6)) );
+        packageHeadLen = 10 + count;
+
+        if (flagMask) {
+            memcpy(maskKey, data + 10, 4);
+        }
+    }
+    else {
+        packageHeadLen = 2 + count;
+        if (flagMask) {
+            memcpy(maskKey, data + 2, 4);
+        }
+    }
+
+    if (dataLen < len + packageHeadLen) { return NULL; }
+    if (packageLen) { *packageLen = len; }
+
+    package = (uint8_t *) allocator( len + 1 );
+    memset(package, 0, len + 1);
+
+    if (flagMask) {
+        // 解包数据使用掩码时, 使用异或解码, maskKey[4] 依次和数据异或运算 .
+        uint8_t *iter =  package;
+        size_t i;
+        for(i = 0, count = 0; i < len; i++) {
+            uint8_t temp1 = maskKey[count];
+            uint8_t temp2 = data[i + packageHeadLen];
+            // 异或运算后得到数据...
+            *iter++ =  (uint8_t)(((~temp1)&temp2) | (temp1&(~temp2)));
+            count += 1;
+            if (count >= sizeof(maskKey)) {
+                // maskKey[4] 循环使用...
+                count = 0;
+            }
+        }
+    } else {
+        // 解包数据没使用掩码, 直接复制数据段...
+        memcpy(package, data + packageHeadLen, len);
+    }
+    return package;
+}
+
