@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\depends\http-parser\http_parser.c" />
+    <ClCompile Include="..\..\depends\http-parser\http_parser_wrapper.c" />
     <ClCompile Include="..\..\src\cache.c" />
     <ClCompile Include="..\..\src\client\client.c" />
     <ClCompile Include="..\..\src\client\listener.c" />
@@ -57,6 +58,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\depends\http-parser\http_parser.h" />
+    <ClInclude Include="..\..\depends\http-parser\http_parser_wrapper.h" />
     <ClInclude Include="..\..\src\cache.h" />
     <ClInclude Include="..\..\src\client\defs.h" />
     <ClInclude Include="..\..\src\client\s5.h" />

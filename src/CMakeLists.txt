@@ -48,6 +48,8 @@ set(SOURCE_FILES_LOCAL
 set(SOURCE_FILES_CLIENT
         ../depends/http-parser/http_parser.c
         ../depends/http-parser/http_parser.h
+        ../depends/http-parser/http_parser_wrapper.c
+        ../depends/http-parser/http_parser_wrapper.h
         cache.c
         cache.h
         encrypt.c
@@ -102,6 +104,8 @@ set(SOURCE_FILES_TUNNEL
 set(SOURCE_FILES_SERVER
         ../depends/http-parser/http_parser.c
         ../depends/http-parser/http_parser.h
+        ../depends/http-parser/http_parser_wrapper.c
+        ../depends/http-parser/http_parser_wrapper.h
         ws_tls_basic.c
         ws_tls_basic.h
         text_in_color.c
