@@ -22,6 +22,9 @@
     <Filter Include="server">
       <UniqueIdentifier>{2dc57378-9a2f-45a4-b750-819da8f2d2f2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="http-parser">
+      <UniqueIdentifier>{444c394d-e4d8-469f-9665-5675a07b30e2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\encrypt.c">
@@ -119,6 +122,9 @@
     </ClCompile>
     <ClCompile Include="..\..\src\ws_tls_basic.c">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\depends\http-parser\http_parser.c">
+      <Filter>http-parser</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -232,6 +238,9 @@
     </ClInclude>
     <ClInclude Include="..\..\src\ws_tls_basic.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\depends\http-parser\http_parser.h">
+      <Filter>http-parser</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

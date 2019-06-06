@@ -46,6 +46,8 @@ set(SOURCE_FILES_LOCAL
         ${SOURCE_FILES_SNI})
 
 set(SOURCE_FILES_CLIENT
+        ../depends/http-parser/http_parser.c
+        ../depends/http-parser/http_parser.h
         cache.c
         cache.h
         encrypt.c
@@ -98,6 +100,8 @@ set(SOURCE_FILES_TUNNEL
         tunnel.c)
 
 set(SOURCE_FILES_SERVER
+        ../depends/http-parser/http_parser.c
+        ../depends/http-parser/http_parser.h
         ws_tls_basic.c
         ws_tls_basic.h
         text_in_color.c
@@ -158,6 +162,7 @@ include_directories(${libudns_include_dirs})
 include_directories(${libsodium_include_dirs})
 include_directories(${LIB_JSON_C_DIR}/..)
 include_directories(${PCRE_INCLUDE_DIR})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../depends/http-parser)
 
 if(USE_CRYPTO_MBEDTLS)
     include_directories(${MBEDTLS_ROOT_DIR}/include)
