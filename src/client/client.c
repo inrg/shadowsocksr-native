@@ -808,8 +808,10 @@ static void tunnel_tls_on_connection_established(struct tunnel_ctx *tunnel) {
             unsigned short domain_port = config->remote_port;
             uint8_t *buf = (uint8_t *)calloc(MAX_REQUEST_SIZE, sizeof(*buf));
             size_t len = 0;
+            char *key = websocket_generate_sec_websocket_key(&malloc);
             sprintf((char *)buf, WEBSOCKET_REQUEST_FORMAT,
-                url_path, domain, domain_port, (int)tmp->len);
+                url_path, domain, domain_port, key, (int)tmp->len);
+            free(key);
             len = strlen((char *)buf);
 
             if (tmp->buffer && tmp->len) {

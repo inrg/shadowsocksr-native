@@ -67,6 +67,30 @@ const uint8_t * extract_http_data(const uint8_t *http_pkg, size_t size, size_t *
     return (uint8_t *)ptmp;
 }
 
+char * websocket_generate_sec_websocket_key(void*(*allocator)(size_t)) {
+    static int count = 0;
+    char seed[0x100] = { 0 };
+    uint8_t data[20] = { 0 };
+    size_t b64_str_len = 0;
+    char *b64_str;
+
+    if (allocator == NULL) {
+        return NULL;
+    }
+    sprintf(seed, "seed %d seed %d", count, count+1);
+    count++;
+    random_bytes_generator(seed, data, sizeof(data));
+
+    mbedtls_base64_encode(NULL, 0, &b64_str_len, data, sizeof(data));
+
+    b64_str = (char *) allocator(b64_str_len + 1);
+    b64_str[b64_str_len] = 0;
+
+    mbedtls_base64_encode((unsigned char *)b64_str, b64_str_len, &b64_str_len, data, sizeof(data));
+
+    return b64_str;
+}
+
 char * websocket_generate_sec_websocket_accept(const char *sec_websocket_key, void*(*allocator)(size_t)) {
     mbedtls_sha1_context sha1_ctx = { 0 };
     unsigned char sha1_hash[SHA_DIGEST_LENGTH] = { 0 };

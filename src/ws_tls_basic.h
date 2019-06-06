@@ -9,7 +9,7 @@
     "HTTP/1.1 101 Switching Protocols\r\n"                                      \
     "Upgrade: websocket\r\n"                                                    \
     "Connection: Upgrade\r\n"                                                   \
-    "Sec-WebSocket-Accept: Oy4NRAQ13jhfONC7bP8dTKb4PTU=\r\n"                    \
+    "Sec-WebSocket-Accept: %d\r\n"                                              \
     "\r\n"
 
 // Sec-WebSocket-Accept = 
@@ -21,10 +21,12 @@
     "Connection: Upgrade\r\n"                                                   \
     "Upgrade: websocket\r\n"                                                    \
     "Sec-WebSocket-Version: 13\r\n"                                             \
-    "Sec-WebSocket-Key: w4v7O6xFTi36lq3RNcgctw==\r\n"                           \
+    "Sec-WebSocket-Key: %s\r\n"                                                 \
     "Content-Type: application/octet-stream\r\n"                                \
     "Content-Length: %d\r\n"                                                    \
     "\r\n"
+
+#define SEC_WEBSOKET_KEY "Sec-WebSocket-Key:"
 
 #ifndef SHA_DIGEST_LENGTH
 #define SHA_DIGEST_LENGTH 20
@@ -35,6 +37,7 @@
 void random_bytes_generator(const char *seed, uint8_t *buffer, size_t len);
 const uint8_t * extract_http_data(const uint8_t *http_pkg, size_t size, size_t *data_size);
 
+char * websocket_generate_sec_websocket_key(void*(*allocator)(size_t));
 char * websocket_generate_sec_websocket_accept(const char *sec_websocket_key, void*(*allocator)(size_t));
 unsigned char * websocket_server_retrieve_payload(unsigned char *buf, size_t len, void*(*allocator)(size_t), size_t *payload_len);
 unsigned char * websocket_server_build_frame(const char *payload, size_t payload_len, void*(*allocator)(size_t), size_t *frame_len);
