@@ -3,8 +3,6 @@
 
 #define MAX_REQUEST_SIZE      0x8000
 
-#define WEBSOCKET_STATUS_LINE "HTTP/1.1 101 Switching Protocols\r\n"
-
 #define WEBSOCKET_RESPONSE                                                      \
     "HTTP/1.1 101 Switching Protocols\r\n"                                      \
     "Upgrade: websocket\r\n"                                                    \
@@ -26,13 +24,13 @@
     "Content-Length: %d\r\n"                                                    \
     "\r\n"
 
-#define SEC_WEBSOKET_KEY "Sec-WebSocket-Key:"
+#define WEBSOCKET_STATUS    "Switching Protocols"
+#define SEC_WEBSOKET_KEY    "Sec-WebSocket-Key"
+#define SEC_WEBSOKET_ACCEPT "Sec-WebSocket-Accept"
 
 #ifndef SHA_DIGEST_LENGTH
 #define SHA_DIGEST_LENGTH 20
 #endif
-
-#define WEBSOCKET_GUID "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
 void random_bytes_generator(const char *seed, uint8_t *buffer, size_t len);
 const uint8_t * extract_http_data(const uint8_t *http_pkg, size_t size, size_t *data_size);

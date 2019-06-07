@@ -10,6 +10,7 @@
 #include "obfsutil.h"
 #include "tls_cli.h"
 #include "ws_tls_basic.h"
+#include "http_parser_wrapper.h"
 
 /* A connection is modeled as an abstraction on top of two simple state
  * machines, one for reading and one for writing.  Either state machine
@@ -69,6 +70,7 @@ struct client_ctx {
     struct buffer_t *init_pkg;
     s5_ctx *parser;  /* The SOCKS protocol parser. */
     enum tunnel_stage stage;
+    char *sec_websocket_key;
 };
 
 static struct buffer_t * initial_package_create(const s5_ctx *parser);
@@ -703,6 +705,7 @@ static void tunnel_dying(struct tunnel_ctx *tunnel) {
     }
     buffer_release(ctx->init_pkg);
     free(ctx->parser);
+    if (ctx->sec_websocket_key) { free(ctx->sec_websocket_key); }
     free(ctx);
 }
 
@@ -811,7 +814,7 @@ static void tunnel_tls_on_connection_established(struct tunnel_ctx *tunnel) {
             char *key = websocket_generate_sec_websocket_key(&malloc);
             sprintf((char *)buf, WEBSOCKET_REQUEST_FORMAT,
                 url_path, domain, domain_port, key, (int)tmp->len);
-            free(key);
+            ctx->sec_websocket_key = key;
             len = strlen((char *)buf);
 
             if (tmp->buffer && tmp->len) {
@@ -832,11 +835,22 @@ static void tunnel_tls_on_data_received(struct tunnel_ctx *tunnel, const uint8_t
     struct client_ctx *ctx = (struct client_ctx *) tunnel->data;
     struct socket_ctx *incoming = tunnel->incoming;
     if (ctx->stage == tunnel_stage_tls_websocket_upgrade) {
-        if (0 != strncmp(WEBSOCKET_STATUS_LINE, (char *)data, strlen(WEBSOCKET_STATUS_LINE))) {
+        struct http_headers *hdrs = http_headers_parse(0, data, size);
+        const char *accept_val = http_headers_get_field_val(hdrs, SEC_WEBSOKET_ACCEPT);
+        const char *ws_status = http_headers_get_status(hdrs);
+        char *calc_val = websocket_generate_sec_websocket_accept(ctx->sec_websocket_key, &malloc);
+        if (NULL == ws_status ||
+            0 != strcmp(WEBSOCKET_STATUS, ws_status) ||
+            NULL == accept_val || 
+            NULL == calc_val ||
+            0 != strcmp(accept_val, calc_val))
+        {
             tls_client_shutdown(tunnel);
         } else {
             do_socks5_reply_success(tunnel);
         }
+        http_headers_destroy(hdrs);
+        free(calc_val);
         return;
     } else {
         /*

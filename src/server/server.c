@@ -18,6 +18,7 @@
 #include "cmd_line_parser.h"
 #include "ssrutils.h"
 #include "ws_tls_basic.h"
+#include "http_parser_wrapper.h"
 
 #ifndef SSR_MAX_CONN
 #define SSR_MAX_CONN 1024
@@ -57,6 +58,7 @@ struct server_ctx {
     size_t _overhead;
     size_t _recv_buffer_size;
     size_t _recv_d_max_size;
+    char *sec_websocket_key;
 };
 
 struct address_timestamp {
@@ -352,6 +354,7 @@ static void tunnel_dying(struct tunnel_ctx *tunnel) {
         tunnel_cipher_release(ctx->cipher);
     }
     buffer_release(ctx->init_pkg);
+    if (ctx->sec_websocket_key) { free(ctx->sec_websocket_key); }
     free(ctx);
 }
 
@@ -855,7 +858,10 @@ static void do_tls_init_package(struct tunnel_ctx *tunnel, struct socket_ctx *so
     struct buffer_t *receipt = NULL;
     struct buffer_t *confirm = NULL;
     struct buffer_t *result = NULL;
+    struct http_headers *hdrs = NULL;
     do {
+        uint8_t *indata = (uint8_t *)socket->buf->base;
+        size_t len = (size_t)socket->result;
         size_t tcp_mss = _update_tcp_mss(socket);
 
         ASSERT(socket == tunnel->incoming);
@@ -869,9 +875,20 @@ static void do_tls_init_package(struct tunnel_ctx *tunnel, struct socket_ctx *so
         ASSERT(ctx->cipher == NULL);
         ctx->cipher = tunnel_cipher_create(ctx->env, tcp_mss);
         ctx->_tcp_mss = tcp_mss;
+
+        hdrs = http_headers_parse(1, indata, len);
         {
-            size_t len = (size_t)socket->result;
-            const uint8_t *data = extract_http_data((uint8_t *)socket->buf->base, len, &len);
+            const char *key = http_headers_get_field_val(hdrs, SEC_WEBSOKET_KEY);
+            const char *url = http_headers_get_url(hdrs);
+            if (key==NULL || url==NULL || 0 != strcmp(url, config->over_tls_path)) {
+                tunnel_shutdown(tunnel);
+                break;
+            }
+            ctx->sec_websocket_key = (char *) calloc(strlen(key) + 1, sizeof(char));
+            strcpy(ctx->sec_websocket_key, key);
+        }
+        {
+            const uint8_t *data = extract_http_data(indata, len, &len);
             BUFFER_CONSTANT_INSTANCE(buf, data, len);
             result = tunnel_tls_cipher_server_decrypt(ctx->cipher, buf, &receipt, &confirm);
         }
@@ -888,7 +905,7 @@ static void do_tls_init_package(struct tunnel_ctx *tunnel, struct socket_ctx *so
         do_prepare_parse(tunnel, socket);
         break;
     } while (0);
-
+    http_headers_destroy(hdrs);
     buffer_release(result);
 }
 
@@ -896,11 +913,14 @@ static void do_tls_client_feedback(struct tunnel_ctx *tunnel) {
     struct server_ctx *ctx = (struct server_ctx *) tunnel->data;
     struct server_config *config = ctx->env->config;
     struct socket_ctx *incoming = tunnel->incoming;
-    BUFFER_CONSTANT_INSTANCE(tls_ok, WEBSOCKET_RESPONSE, strlen(WEBSOCKET_RESPONSE));
+    char *calc_val = websocket_generate_sec_websocket_accept(ctx->sec_websocket_key, &malloc);
+    char tls_ok[0x100] = { 0 };
+    sprintf(tls_ok, WEBSOCKET_RESPONSE, calc_val);
+    free(calc_val);
 
     ASSERT(config->over_tls_enable); (void)config;
 
-    socket_write(incoming, tls_ok->buffer, tls_ok->len);
+    socket_write(incoming, tls_ok, strlen(tls_ok));
 
     ctx->stage = tunnel_stage_tls_client_feedback;
 }
