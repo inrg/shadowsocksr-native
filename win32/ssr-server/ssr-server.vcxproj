@@ -93,7 +93,6 @@
     <ClInclude Include="..\..\src\obfs\verify.h" />
     <ClInclude Include="..\..\src\protocol.h" />
     <ClInclude Include="..\..\src\resolv.h" />
-    <ClInclude Include="..\..\src\server\server.h" />
     <ClInclude Include="..\..\src\ssrbuffer.h" />
     <ClInclude Include="..\..\src\ssrutils.h" />
     <ClInclude Include="..\..\src\ssr_cipher_names.h" />
