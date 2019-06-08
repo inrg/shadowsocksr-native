@@ -60,35 +60,6 @@ void random_bytes_generator(const char *seed, uint8_t *output, size_t len) {
     mbedtls_ctr_drbg_free(&ctr_drbg);
 }
 
-const uint8_t * extract_http_data(const uint8_t *http_pkg, size_t size, size_t *data_size) {
-    char *ptmp = (char *)http_pkg;
-    size_t len0 = (size_t)size;
-    size_t read_len = (size_t)size;
-    char *px = NULL;
-
-#define GET_REQUEST_END "\r\n\r\n"
-    px = strstr((char *)http_pkg, GET_REQUEST_END);
-    if (px != NULL) {
-        ptmp = px + strlen(GET_REQUEST_END);
-        len0 = len0 - (size_t)(ptmp - (char *)http_pkg);
-    }
-
-#define CONTENT_LENGTH "Content-Length:"
-    px = strstr((char *)http_pkg, CONTENT_LENGTH);
-    if (px) {
-        px = px + strlen(CONTENT_LENGTH);
-        read_len = (size_t) strtol(px, NULL, 10);
-    }
-    if (read_len == len0) {
-        if (data_size) {
-            *data_size = len0;
-        }
-    } else {
-        ptmp = (char *)http_pkg;
-    }
-    return (uint8_t *)ptmp;
-}
-
 char * websocket_generate_sec_websocket_key(void*(*allocator)(size_t)) {
     static int count = 0;
     char seed[0x100] = { 0 };

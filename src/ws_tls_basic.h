@@ -33,7 +33,6 @@
 #endif
 
 void random_bytes_generator(const char *seed, uint8_t *buffer, size_t len);
-const uint8_t * extract_http_data(const uint8_t *http_pkg, size_t size, size_t *data_size);
 
 char * websocket_generate_sec_websocket_key(void*(*allocator)(size_t));
 char * websocket_generate_sec_websocket_accept(const char *sec_websocket_key, void*(*allocator)(size_t));

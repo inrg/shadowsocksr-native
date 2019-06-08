@@ -854,7 +854,7 @@ static void tunnel_tls_on_data_received(struct tunnel_ctx *tunnel, const uint8_t
         return;
     } else {
         /*
-        ptmp = extract_http_data((uint8_t *)buf->base, (size_t)nread, &len0);
+        ptmp = extract_http_body((uint8_t *)buf->base, (size_t)nread, &len0);
         struct buffer_t *tmp = buffer_create_from(data, size);
         struct buffer_t *feedback = NULL;
         enum ssr_error e = tunnel_tls_cipher_client_decrypt(ctx->cipher, tmp, &feedback);

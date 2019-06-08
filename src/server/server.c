@@ -888,7 +888,7 @@ static void do_tls_init_package(struct tunnel_ctx *tunnel, struct socket_ctx *so
             strcpy(ctx->sec_websocket_key, key);
         }
         {
-            const uint8_t *data = extract_http_data(indata, len, &len);
+            const uint8_t *data = extract_http_body(indata, len, &len);
             BUFFER_CONSTANT_INSTANCE(buf, data, len);
             result = tunnel_tls_cipher_server_decrypt(ctx->cipher, buf, &receipt, &confirm);
         }
