@@ -86,9 +86,9 @@ static void _mbed_alloc_done_cb(uv_mbed_t *mbed, size_t suggested_size, uv_buf_t
 static void _mbed_data_received_cb(uv_mbed_t *mbed, ssize_t nread, uv_buf_t* buf, void *p) {
     struct tls_cli_ctx *ctx = (struct tls_cli_ctx *)p;
     struct tunnel_ctx *tunnel = ctx->tunnel;
-    assert(tunnel);
     assert(ctx->mbed == mbed);
     if (nread > 0) {
+        assert(tunnel);
         assert(tunnel->tunnel_tls_on_data_received);
         if (tunnel->tunnel_tls_on_data_received) {
             tunnel->tunnel_tls_on_data_received(tunnel, (uint8_t *)buf->base, (size_t)nread);
@@ -123,6 +123,7 @@ static void _mbed_close_done_cb(uv_mbed_t *mbed, void *p) {
         if (tunnel->tunnel_tls_on_shutting_down) {
             tunnel->tunnel_tls_on_shutting_down(tunnel);
         }
+        tunnel->tls_ctx = NULL;
     }
 
     uv_mbed_free(mbed);
@@ -137,6 +138,9 @@ static void tunnel_tls_send_data(struct tunnel_ctx *tunnel, const uint8_t *data,
 
 static void tunnel_dying(struct tunnel_ctx *tunnel, void *p) {
     struct tls_cli_ctx *ctx = (struct tls_cli_ctx *)p;
+    if (tunnel->tls_ctx == NULL) {
+        return;
+    }
     assert(tunnel == ctx->tunnel);
     ctx->tunnel = NULL;
 }
