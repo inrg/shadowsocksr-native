@@ -673,7 +673,11 @@ static uint8_t* tunnel_extract_data(struct socket_ctx *socket, void*(*allocator)
     buf = buffer_create_from((uint8_t *)socket->buf->base, (size_t)socket->result);
 
     if (socket == tunnel->incoming) {
-        error = tunnel_cipher_client_encrypt(cipher_ctx, buf);
+        if (config->over_tls_enable) {
+            error = tunnel_tls_cipher_client_encrypt(cipher_ctx, buf);
+        } else {
+            error = tunnel_cipher_client_encrypt(cipher_ctx, buf);
+        }
     } else if (socket == tunnel->outgoing) {
         struct buffer_t *feedback = NULL;
         ASSERT(config->over_tls_enable == false);
