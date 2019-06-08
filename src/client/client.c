@@ -59,7 +59,7 @@ enum tunnel_stage {
     tunnel_stage_ssr_auth_sent,
     tunnel_stage_ssr_waiting_feedback,
     tunnel_stage_ssr_receipt_of_feedback_sent,
-    tunnel_stage_auth_complition_done,      /* Connected. Start piping data. */
+    tunnel_stage_auth_completion_done,      /* Connected. Start piping data. */
     tunnel_stage_streaming,            /* Connected. Pipe data back and forth. */
     tunnel_stage_kill,             /* Tear down session. */
 };
@@ -244,7 +244,7 @@ static void do_next(struct tunnel_ctx *tunnel, struct socket_ctx *socket) {
         outgoing->wrstate = socket_stop;
         do_socks5_reply_success(tunnel);
         break;
-    case tunnel_stage_auth_complition_done:
+    case tunnel_stage_auth_completion_done:
         ASSERT(incoming->wrstate == socket_done);
         incoming->wrstate = socket_stop;
         if (config->over_tls_enable) {
@@ -434,8 +434,8 @@ static void do_parse_s5_request(struct tunnel_ctx *tunnel) {
         ctx->stage = tunnel_stage_tls_connecting;
         tls_client_launch(tunnel, config);
         return;
-    } else
-    {
+    }
+    else {
         union sockaddr_universal remote_addr = { 0 };
         if (convert_universal_address(config->remote_host, config->remote_port, &remote_addr) != 0) {
             socket_getaddrinfo(outgoing, config->remote_host);
@@ -632,7 +632,7 @@ static void do_socks5_reply_success(struct tunnel_ctx *tunnel) {
     memcpy(buf + 3, init_pkg->buffer, init_pkg->len);
     socket_write(incoming, buf, 3 + init_pkg->len);
     free(buf);
-    ctx->stage = tunnel_stage_auth_complition_done;
+    ctx->stage = tunnel_stage_auth_completion_done;
 }
 
 static void do_launch_streaming(struct tunnel_ctx *tunnel) {

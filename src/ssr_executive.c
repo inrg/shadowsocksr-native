@@ -553,7 +553,7 @@ enum ssr_error tunnel_tls_cipher_client_encrypt(struct tunnel_cipher_ctx *tc, st
 
 enum ssr_error tunnel_tls_cipher_client_decrypt(struct tunnel_cipher_ctx *tc, struct buffer_t *buf, struct buffer_t **feedback) {
     struct server_env_t *env = tc->env;
-    ASSERT(buf->len <= SSR_BUFF_SIZE);
+    // ASSERT(buf->len <= SSR_BUFF_SIZE);
     if (feedback) { *feedback = NULL; }
     if (buf->len > 0) {
         int err = ss_decrypt(env->cipher, buf, tc->d_ctx, SSR_BUFF_SIZE);
