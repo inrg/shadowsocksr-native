@@ -659,6 +659,7 @@ static void do_launch_streaming(struct tunnel_ctx *tunnel) {
 static uint8_t* tunnel_extract_data(struct socket_ctx *socket, void*(*allocator)(size_t size), size_t *size) {
     struct tunnel_ctx *tunnel = socket->tunnel;
     struct client_ctx *ctx = (struct client_ctx *) tunnel->data;
+    struct server_config *config = ctx->env->config;
     struct tunnel_cipher_ctx *cipher_ctx = ctx->cipher;
     enum ssr_error error = ssr_error_client_decode;
     struct buffer_t *buf = NULL;
@@ -675,6 +676,7 @@ static uint8_t* tunnel_extract_data(struct socket_ctx *socket, void*(*allocator)
         error = tunnel_cipher_client_encrypt(cipher_ctx, buf);
     } else if (socket == tunnel->outgoing) {
         struct buffer_t *feedback = NULL;
+        ASSERT(config->over_tls_enable == false);
         error = tunnel_cipher_client_decrypt(cipher_ctx, buf, &feedback);
         if (feedback) {
             ASSERT(false);
@@ -773,8 +775,11 @@ void tunnel_tls_client_incoming_streaming(struct tunnel_ctx *tunnel, struct sock
             ASSERT(tunnel->tunnel_extract_data);
             buf = tunnel->tunnel_extract_data(socket, &malloc, &len);
             if (buf /* && size > 0 */) {
+                size_t frame_len = 0;
+                uint8_t *frame = websocket_build_frame(true, buf, len, &malloc, &frame_len);
                 ASSERT(tunnel->tunnel_tls_send_data);
-                tunnel->tunnel_tls_send_data(tunnel, buf, len);
+                tunnel->tunnel_tls_send_data(tunnel, frame, frame_len);
+                free(frame);
             } else {
                 tls_client_shutdown(tunnel);
             }
@@ -853,15 +858,17 @@ static void tunnel_tls_on_data_received(struct tunnel_ctx *tunnel, const uint8_t
         free(calc_val);
         return;
     } else {
-        /*
-        ptmp = extract_http_body((uint8_t *)buf->base, (size_t)nread, &len0);
-        struct buffer_t *tmp = buffer_create_from(data, size);
+        size_t payload_len = 0;
+        uint8_t *payload =  websocket_retrieve_payload(data, size, &malloc, &payload_len);
+        struct buffer_t *tmp = buffer_create_from(payload, payload_len);
         struct buffer_t *feedback = NULL;
         enum ssr_error e = tunnel_tls_cipher_client_decrypt(ctx->cipher, tmp, &feedback);
         assert(!feedback);
+
+        socket_write(incoming, tmp->buffer, tmp->len);
+
         buffer_release(tmp);
-        */
-        ASSERT(false);
+        free(payload);
     }
 }
 

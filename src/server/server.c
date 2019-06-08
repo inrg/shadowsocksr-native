@@ -968,7 +968,12 @@ static uint8_t* tunnel_extract_data(struct socket_ctx *socket, void*(*allocator)
         BUFFER_CONSTANT_INSTANCE(src, socket->buf->base, socket->result);
         if (socket == tunnel->outgoing) {
             if (config->over_tls_enable) {
-                buf = tunnel_tls_cipher_server_encrypt(cipher_ctx, buf);
+                struct buffer_t *tmp = tunnel_tls_cipher_server_encrypt(cipher_ctx, src);
+                size_t frame_len = 0;
+                uint8_t *frame = websocket_build_frame(false, tmp->buffer, tmp->len, &malloc, &frame_len);
+                buf = buffer_create_from(frame, frame_len);
+                free(frame);
+                buffer_release(tmp);
             } else {
                 buf = tunnel_cipher_server_encrypt(cipher_ctx, src);
             }
@@ -976,7 +981,11 @@ static uint8_t* tunnel_extract_data(struct socket_ctx *socket, void*(*allocator)
             struct buffer_t *receipt = NULL;
             struct buffer_t *confirm = NULL;
             if (config->over_tls_enable) {
-                buf = tunnel_tls_cipher_server_decrypt(cipher_ctx, src, &receipt, &confirm);
+                size_t payload_len = 0;
+                uint8_t *payload = websocket_retrieve_payload(src->buffer, src->len, &malloc, &payload_len);
+                BUFFER_CONSTANT_INSTANCE(payload_buf, payload, payload_len);
+                buf = tunnel_tls_cipher_server_decrypt(cipher_ctx, payload_buf, &receipt, &confirm);
+                free(payload);
             } else {
                 buf = tunnel_cipher_server_decrypt(cipher_ctx, src, &receipt, &confirm);
             }
