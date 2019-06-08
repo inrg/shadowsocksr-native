@@ -75,7 +75,7 @@ void server_shutdown(struct server_env_t *env);
 void signal_quit_cb(uv_signal_t *handle, int signum);
 void tunnel_incoming_connection_established_cb(uv_stream_t *server, int status);
 
-static void tunnel_dying(struct tunnel_ctx *tunnel);
+static void tunnel_dying(struct tunnel_ctx *tunnel, void *p);
 static void tunnel_timeout_expire_done(struct tunnel_ctx *tunnel, struct socket_ctx *socket);
 static void tunnel_outgoing_connected_done(struct tunnel_ctx *tunnel, struct socket_ctx *socket);
 static void tunnel_read_done(struct tunnel_ctx *tunnel, struct socket_ctx *socket);
@@ -283,7 +283,7 @@ bool _init_done_cb(struct tunnel_ctx *tunnel, void *p) {
     ctx->_recv_buffer_size = TCP_BUF_SIZE_MAX;
     tunnel->data = ctx;
 
-    tunnel->tunnel_dying = &tunnel_dying;
+    tunnel_add_dying_cb(tunnel, &tunnel_dying, ctx);
     tunnel->tunnel_timeout_expire_done = &tunnel_timeout_expire_done;
     tunnel->tunnel_outgoing_connected_done = &tunnel_outgoing_connected_done;
     tunnel->tunnel_read_done = &tunnel_read_done;
@@ -346,8 +346,11 @@ void tunnel_incoming_connection_established_cb(uv_stream_t *server, int status) 
     server_tunnel_initialize((uv_tcp_t *)server, env->config->idle_timeout);
 }
 
-static void tunnel_dying(struct tunnel_ctx *tunnel) {
+static void tunnel_dying(struct tunnel_ctx *tunnel, void *p) {
     struct server_ctx *ctx = (struct server_ctx *) tunnel->data;
+    struct server_ctx *ctx2 = (struct server_ctx *) p;
+
+    ASSERT(ctx = ctx2);
 
     cstl_set_container_remove(ctx->env->tunnel_set, tunnel);
     if (ctx->cipher) {

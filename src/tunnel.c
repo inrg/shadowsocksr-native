@@ -27,6 +27,10 @@
 #include "tunnel.h"
 #include "dump_info.h"
 
+#if !defined(ARRAY_SIZE)
+#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(*(arr)))
+#endif
+
 static bool tunnel_is_dead(struct tunnel_ctx *tunnel);
 static void tunnel_add_ref(struct tunnel_ctx *tunnel);
 static void tunnel_release(struct tunnel_ctx *tunnel);
@@ -94,8 +98,11 @@ static void tunnel_add_ref(struct tunnel_ctx *tunnel) {
 static void tunnel_release(struct tunnel_ctx *tunnel) {
     tunnel->ref_count--;
     if (tunnel->ref_count == 0) {
-        if (tunnel->tunnel_dying) {
-            tunnel->tunnel_dying(tunnel);
+        int i = 0;
+        for (i = 0; i < ARRAY_SIZE(tunnel->tunnel_dying); ++i) {
+            if (tunnel->tunnel_dying[i]) {
+                tunnel->tunnel_dying[i](tunnel, tunnel->tunnel_dying_p[i]);
+            }
         }
 
         free(tunnel->incoming);
@@ -154,6 +161,25 @@ void tunnel_initialize(uv_tcp_t *listener, unsigned int idle_timeout, tunnel_ini
     } else {
         tunnel_shutdown(tunnel);
     }
+}
+
+void tunnel_add_dying_cb(struct tunnel_ctx *tunnel, tunnel_dying_cb cb, void *p) {
+    bool done = false;
+    int i;
+    for (i=0; i<ARRAY_SIZE(tunnel->tunnel_dying); ++i) {
+        if (cb == tunnel->tunnel_dying[i]) {
+            tunnel->tunnel_dying_p[i] = p;
+            done = true;
+            break;
+        }
+        if (NULL == tunnel->tunnel_dying[i]) {
+            tunnel->tunnel_dying[i] = cb;
+            tunnel->tunnel_dying_p[i] = p;
+            done = true;
+            break;
+        }
+    }
+    ASSERT(done);
 }
 
 void tunnel_shutdown(struct tunnel_ctx *tunnel) {

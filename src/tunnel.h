@@ -50,7 +50,10 @@ struct tunnel_ctx {
     struct socks5_address *desired_addr;
     int ref_count;
 
-    void(*tunnel_dying)(struct tunnel_ctx *tunnel);
+#define TOTAL_DYING_CALLBACKS 4
+    void(*tunnel_dying[TOTAL_DYING_CALLBACKS])(struct tunnel_ctx *tunnel, void *p);
+    void *tunnel_dying_p[TOTAL_DYING_CALLBACKS];
+
     void(*tunnel_timeout_expire_done)(struct tunnel_ctx *tunnel, struct socket_ctx *socket);
     void(*tunnel_outgoing_connected_done)(struct tunnel_ctx *tunnel, struct socket_ctx *socket);
     void(*tunnel_read_done)(struct tunnel_ctx *tunnel, struct socket_ctx *socket);
@@ -71,6 +74,10 @@ size_t _update_tcp_mss(struct socket_ctx *socket);
 
 typedef bool(*tunnel_init_done_cb)(struct tunnel_ctx *tunnel, void *p);
 void tunnel_initialize(uv_tcp_t *lx, unsigned int idle_timeout, tunnel_init_done_cb init_done_cb, void *p);
+
+typedef void(*tunnel_dying_cb)(struct tunnel_ctx *tunnel, void *p);
+void tunnel_add_dying_cb(struct tunnel_ctx *tunnel, tunnel_dying_cb cb, void *p);
+
 void tunnel_shutdown(struct tunnel_ctx *tunnel);
 void tunnel_traditional_streaming(struct tunnel_ctx *tunnel, struct socket_ctx *socket);
 int socket_connect(struct socket_ctx *c);

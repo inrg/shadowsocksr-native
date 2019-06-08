@@ -87,7 +87,7 @@ static bool do_ssr_receipt_for_feedback(struct tunnel_ctx *tunnel);
 static void do_socks5_reply_success(struct tunnel_ctx *tunnel);
 static void do_launch_streaming(struct tunnel_ctx *tunnel);
 static uint8_t* tunnel_extract_data(struct socket_ctx *socket, void*(*allocator)(size_t size), size_t *size);
-static void tunnel_dying(struct tunnel_ctx *tunnel);
+static void tunnel_dying(struct tunnel_ctx *tunnel, void *p);
 static void tunnel_timeout_expire_done(struct tunnel_ctx *tunnel, struct socket_ctx *socket);
 static void tunnel_outgoing_connected_done(struct tunnel_ctx *tunnel, struct socket_ctx *socket);
 static void tunnel_read_done(struct tunnel_ctx *tunnel, struct socket_ctx *socket);
@@ -111,7 +111,7 @@ static bool init_done_cb(struct tunnel_ctx *tunnel, void *p) {
     ctx->env = env;
     tunnel->data = ctx;
 
-    tunnel->tunnel_dying = &tunnel_dying;
+    tunnel_add_dying_cb(tunnel, &tunnel_dying, ctx);
     tunnel->tunnel_timeout_expire_done = &tunnel_timeout_expire_done;
     tunnel->tunnel_outgoing_connected_done = &tunnel_outgoing_connected_done;
     tunnel->tunnel_read_done = &tunnel_read_done;
@@ -702,8 +702,11 @@ static uint8_t* tunnel_extract_data(struct socket_ctx *socket, void*(*allocator)
     return result;
 }
 
-static void tunnel_dying(struct tunnel_ctx *tunnel) {
+static void tunnel_dying(struct tunnel_ctx *tunnel, void *p) {
     struct client_ctx *ctx = (struct client_ctx *) tunnel->data;
+    struct client_ctx *ctx2 = (struct client_ctx *) p;
+
+    ASSERT(ctx2 == ctx);
 
     cstl_set_container_remove(ctx->env->tunnel_set, tunnel);
     if (ctx->cipher) {

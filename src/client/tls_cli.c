@@ -32,6 +32,7 @@ struct tls_cli_ctx {
 };
 
 static void tunnel_tls_send_data(struct tunnel_ctx *tunnel, const uint8_t *data, size_t size);
+static void tunnel_dying(struct tunnel_ctx *tunnel, void *p);
 
 static void _mbed_connect_done_cb(uv_mbed_t* mbed, int status, void *p);
 static void _mbed_alloc_done_cb(uv_mbed_t *mbed, size_t suggested_size, uv_buf_t *buf, void *p);
@@ -48,6 +49,7 @@ void tls_client_launch(struct tunnel_ctx *tunnel, struct server_config *config) 
 
     tunnel->tls_ctx = ctx;
     tunnel->tunnel_tls_send_data = &tunnel_tls_send_data;
+    tunnel_add_dying_cb(tunnel, &tunnel_dying, ctx);
 
     uv_mbed_connect(ctx->mbed, config->remote_host, config->remote_port, _mbed_connect_done_cb, ctx);
 }
@@ -60,6 +62,8 @@ void tls_client_shutdown(struct tunnel_ctx *tunnel) {
 static void _mbed_connect_done_cb(uv_mbed_t* mbed, int status, void *p) {
     struct tls_cli_ctx *ctx = (struct tls_cli_ctx *)p;
     struct tunnel_ctx *tunnel = ctx->tunnel;
+
+    assert(tunnel);
 
     if (status < 0) {
         fprintf(stderr, "connect failed: %d: %s\n", status, uv_strerror(status));
@@ -82,6 +86,7 @@ static void _mbed_alloc_done_cb(uv_mbed_t *mbed, size_t suggested_size, uv_buf_t
 static void _mbed_data_received_cb(uv_mbed_t *mbed, ssize_t nread, uv_buf_t* buf, void *p) {
     struct tls_cli_ctx *ctx = (struct tls_cli_ctx *)p;
     struct tunnel_ctx *tunnel = ctx->tunnel;
+    assert(tunnel);
     assert(ctx->mbed == mbed);
     if (nread > 0) {
         assert(tunnel->tunnel_tls_on_data_received);
@@ -114,8 +119,10 @@ static void _mbed_close_done_cb(uv_mbed_t *mbed, void *p) {
     struct tunnel_ctx *tunnel = ctx->tunnel;
     assert(mbed == ctx->mbed);
 
-    if (tunnel->tunnel_tls_on_shutting_down) {
-        tunnel->tunnel_tls_on_shutting_down(tunnel);
+    if (tunnel) {
+        if (tunnel->tunnel_tls_on_shutting_down) {
+            tunnel->tunnel_tls_on_shutting_down(tunnel);
+        }
     }
 
     uv_mbed_free(mbed);
@@ -126,4 +133,10 @@ static void tunnel_tls_send_data(struct tunnel_ctx *tunnel, const uint8_t *data,
     struct tls_cli_ctx *ctx = tunnel->tls_ctx;
     uv_buf_t o = uv_buf_init((char *)data, (unsigned int)size);
     uv_mbed_write(ctx->mbed, &o, &_mbed_write_done_cb, ctx);
+}
+
+static void tunnel_dying(struct tunnel_ctx *tunnel, void *p) {
+    struct tls_cli_ctx *ctx = (struct tls_cli_ctx *)p;
+    assert(tunnel == ctx->tunnel);
+    ctx->tunnel = NULL;
 }
