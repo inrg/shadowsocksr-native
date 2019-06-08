@@ -230,65 +230,74 @@ unsigned char * websocket_server_build_frame(const char *payload, size_t payload
     return frame_buf;
 }
 
-unsigned char * websocket_client_build_frame(const char *payload, size_t payload_len, void*(*allocator)(size_t), size_t *frame_len) {
-    unsigned char mask[4];
-    unsigned char finNopcode;
+uint8_t * websocket_build_frame(int masked, const uint8_t *payload, size_t payload_len, void*(*allocator)(size_t), size_t *frame_len) {
+    uint8_t finNopcode;
     size_t payload_len_small;
-    unsigned int payload_offset = 6;
-    size_t len_size;
-    size_t i;
+    size_t payload_offset;
+    size_t len_size = 0;
     size_t frame_size;
-    unsigned char *data;
+    uint8_t *data;
 
     if (payload==NULL || payload_len==0 || allocator==NULL) {
         return NULL;
     }
 
-    // https://github.com/OlehKulykov/librws/blob/master/src/rws_frame.c
-    // https://github.com/payden/libwsclient/blob/master/wsclient.c#L991
+#define WS_MASK_SIZE 4
 
-    finNopcode = 0x82; // FIN and binary opcode.
+    // FIN = 1 (it's the last message) RSV1 = 0, RSV2 = 0, RSV3 = 0
+    // OpCode(4b) = 2 (binary frame)
+    finNopcode = 0x82;
     if(payload_len <= 125) {
-        frame_size = 6 + payload_len;
         payload_len_small = payload_len;
+        len_size = 0;
     } else if(payload_len > 125 && payload_len <= 0xffff) {
-        frame_size = 8 + payload_len;
         payload_len_small = 126;
-        payload_offset += 2;
+        len_size = sizeof(uint16_t);
     } else if(payload_len > 0xffff && payload_len <= 0xffffffffffffffffLL) {
-        frame_size = 14 + payload_len;
         payload_len_small = 127;
-        payload_offset += 8;
+        len_size = sizeof(uint64_t);
     } else {
         assert(0);
         return NULL;
     }
+
+    payload_offset = 2 + len_size + (masked ? WS_MASK_SIZE : 0);
+    frame_size = payload_offset + payload_len;
+
     data = (unsigned char *) allocator(frame_size + 1);
     memset(data, 0, frame_size + 1);
     *data = finNopcode;
-    *(data+1) = ((uint8_t)payload_len_small) | 0x80; // payload length with mask bit on
+    if (masked) {
+        *(data + 1) = ((uint8_t)payload_len_small) | 0x80; // payload length with mask bit on
+    } else {
+        *(data + 1) = ((uint8_t)payload_len_small) & 0x7F;
+    }
     if(payload_len_small == 126) {
         payload_len &= 0xffff;
-        len_size = 2;
-        for(i = 0; i < len_size; i++) {
-            *(data+2+i) = *((unsigned char *)&payload_len+(len_size-i-1));
-        }
+        *((uint16_t *)(data + 2)) = (uint16_t)htons((uint16_t)payload_len);
     }
     if(payload_len_small == 127) {
         payload_len &= 0xffffffffffffffffLL;
-        len_size = 8;
+#if 0
         for(i = 0; i < len_size; i++) {
-            *(data+2+i) = *((unsigned char *)&payload_len+(len_size-i-1));
+            *(data+2+i) = *(((uint8_t *)&payload_len) + (len_size-i-1));
         }
+#else
+        *((uint32_t *)(data + 2 + 4)) = (uint32_t)htonl((uint32_t)payload_len);
+#endif
     }
 
-    random_bytes_generator("RANDOM_GEN", mask, sizeof(mask));
-    for(i=0; i<4; i++) {
-        *(data+(payload_offset-4)+i) = mask[i];
-    }
-    memcpy(data+payload_offset, payload, payload_len);
-    for(i=0; i<payload_len; i++) {
-        *(data+payload_offset+i) ^= mask[i % 4] & 0xff;
+    memcpy(data + payload_offset, payload, payload_len);
+
+    if (masked) {
+        size_t i;
+        uint8_t mask[WS_MASK_SIZE];
+        random_bytes_generator("RANDOM_GEN", mask, sizeof(mask));
+        memcpy(data + (payload_offset - sizeof(mask)), mask, sizeof(mask));
+
+        for (i = 0; i < payload_len; i++) {
+            *(data + payload_offset + i) ^= mask[i % sizeof(mask)] & 0xff;
+        }
     }
 
     if (frame_len) {
@@ -297,7 +306,7 @@ unsigned char * websocket_client_build_frame(const char *payload, size_t payload
     return data;
 }
 
-uint8_t * websocket_retrieve_payload(const uint8_t *data, size_t dataLen, void*(*allocator)(size_t), size_t *packageLen)
+uint8_t * websocket_retrieve_payload(const uint8_t *data, size_t dataLen, void*(*allocator)(size_t), size_t *payload_len)
 {
     unsigned char *package = NULL;
     bool flagFIN = false, flagMask = false;
@@ -354,7 +363,7 @@ uint8_t * websocket_retrieve_payload(const uint8_t *data, size_t dataLen, void*(
     }
 
     if (dataLen < len + packageHeadLen) { return NULL; }
-    if (packageLen) { *packageLen = len; }
+    if (payload_len) { *payload_len = len; }
 
     package = (uint8_t *) allocator( len + 1 );
     memset(package, 0, len + 1);
