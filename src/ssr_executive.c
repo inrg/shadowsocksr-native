@@ -540,7 +540,12 @@ tunnel_cipher_server_decrypt(struct tunnel_cipher_ctx *tc,
     return ret;
 }
 
+#define USING_PLAINTEXT_CIPHER 1
+
 enum ssr_error tunnel_tls_cipher_client_encrypt(struct tunnel_cipher_ctx *tc, struct buffer_t *buf) {
+#if USING_PLAINTEXT_CIPHER
+    return ssr_ok;
+#else
     int err;
     struct server_env_t *env = tc->env;
     ASSERT(buf->capacity >= SSR_BUFF_SIZE);
@@ -549,9 +554,13 @@ enum ssr_error tunnel_tls_cipher_client_encrypt(struct tunnel_cipher_ctx *tc, st
         return ssr_error_invalid_password;
     }
     return ssr_ok;
+#endif
 }
 
 enum ssr_error tunnel_tls_cipher_client_decrypt(struct tunnel_cipher_ctx *tc, struct buffer_t *buf, struct buffer_t **feedback) {
+#if USING_PLAINTEXT_CIPHER
+    return ssr_ok;
+#else
     struct server_env_t *env = tc->env;
     // ASSERT(buf->len <= SSR_BUFF_SIZE);
     if (feedback) { *feedback = NULL; }
@@ -562,9 +571,13 @@ enum ssr_error tunnel_tls_cipher_client_decrypt(struct tunnel_cipher_ctx *tc, st
         }
     }
     return ssr_ok;
+#endif
 }
 
 struct buffer_t * tunnel_tls_cipher_server_encrypt(struct tunnel_cipher_ctx *tc, const struct buffer_t *buf) {
+#if USING_PLAINTEXT_CIPHER
+    return buffer_clone(buf);
+#else
     int err;
     struct server_env_t *env = tc->env;
     struct buffer_t *ret = NULL;
@@ -581,9 +594,13 @@ struct buffer_t * tunnel_tls_cipher_server_encrypt(struct tunnel_cipher_ctx *tc,
         }
     } while (0);
     return ret;
+#endif
 }
 
 struct buffer_t * tunnel_tls_cipher_server_decrypt(struct tunnel_cipher_ctx *tc, const struct buffer_t *buf, struct buffer_t **receipt, struct buffer_t **confirm) {
+#if USING_PLAINTEXT_CIPHER
+    return buffer_clone(buf);
+#else
     int err;
     struct server_env_t *env = tc->env;
     struct buffer_t *ret = NULL;
@@ -599,6 +616,7 @@ struct buffer_t * tunnel_tls_cipher_server_decrypt(struct tunnel_cipher_ctx *tc,
     }
 
     return ret;
+#endif
 }
 
 bool pre_parse_header(struct buffer_t *data) {
