@@ -134,7 +134,6 @@ set(SOURCE_FILES_SERVER
         tunnel.c
         tunnel.h
         server/server.c
-        server/server.h
         ${SOURCE_FILES_OBFS})
 
 set(SOURCE_FILES_MANAGER
