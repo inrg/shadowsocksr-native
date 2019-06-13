@@ -88,10 +88,13 @@ static void _mbed_data_received_cb(uv_mbed_t *mbed, ssize_t nread, uv_buf_t* buf
     struct tunnel_ctx *tunnel = ctx->tunnel;
     assert(ctx->mbed == mbed);
     if (nread > 0) {
-        assert(tunnel);
+        if (tunnel) {
         assert(tunnel->tunnel_tls_on_data_received);
         if (tunnel->tunnel_tls_on_data_received) {
             tunnel->tunnel_tls_on_data_received(tunnel, (uint8_t *)buf->base, (size_t)nread);
+        }
+        } else {
+           uv_mbed_close(mbed, _mbed_close_done_cb, p);
         }
     } else if (nread < 0) {
         if (nread == UV_EOF) {
