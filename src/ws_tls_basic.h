@@ -36,8 +36,6 @@ void random_bytes_generator(const char *seed, uint8_t *buffer, size_t len);
 
 char * websocket_generate_sec_websocket_key(void*(*allocator)(size_t));
 char * websocket_generate_sec_websocket_accept(const char *sec_websocket_key, void*(*allocator)(size_t));
-unsigned char * websocket_server_retrieve_payload(unsigned char *buf, size_t len, void*(*allocator)(size_t), size_t *payload_len);
-unsigned char * websocket_server_build_frame(const char *payload, size_t payload_len, void*(*allocator)(size_t), size_t *frame_len);
 uint8_t * websocket_build_frame(int masked, const uint8_t *payload, size_t payload_len, void*(*allocator)(size_t), size_t *frame_len);
 uint8_t * websocket_retrieve_payload(const uint8_t *data, size_t dataLen, void*(*allocator)(size_t), size_t *packageLen);
 

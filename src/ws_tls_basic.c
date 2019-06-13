@@ -20,6 +20,8 @@
 /*
 https://segmentfault.com/a/1190000012709475
 
+RFC6455 for websocket: https://tools.ietf.org/html/rfc6455
+
  0                   1                   2                   3
  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 +-+-+-+-+-------+-+-------------+-------------------------------+
@@ -119,115 +121,6 @@ char * websocket_generate_sec_websocket_accept(const char *sec_websocket_key, vo
     free(concatenated_val);
 
     return b64_str;
-}
-
-unsigned char * websocket_server_retrieve_payload(unsigned char *buf, size_t len, void*(*allocator)(size_t), size_t *payload_len) {
-    if (buf==NULL || len==0 || allocator==NULL) {
-        return NULL;
-    }
-    else {
-        // A client message follows the binary format outlined in the RFC
-        unsigned char has_fin = buf[0] & 0x80;
-        unsigned char has_rsv1 = buf[0] & 0x40;
-        unsigned char has_rsv2 = buf[0] & 0x20;
-        unsigned char has_rsv3 = buf[0] & 0x10;
-        unsigned char op_code = buf[0] & 0xF;
-        unsigned char has_mask = buf[1] & 0x80;
-
-        unsigned char small_payload_len = buf[1] & 0x7F;
-
-        unsigned char mask_offset;
-        size_t _payload_len;
-
-        unsigned char masking_key[4];
-        unsigned char *masked_payload_data;
-        const char *payload_start;
-        size_t i;
-
-        if (small_payload_len < 126) {
-            // Just use the specified length
-            _payload_len = (size_t) small_payload_len;
-            mask_offset = 2;
-        } else if (small_payload_len == 126) {
-            unsigned short payload_len_nbo = *((unsigned short *)(buf + 2));
-            _payload_len = (size_t) ntohs(payload_len_nbo);
-            mask_offset = 4;
-        } else {
-            // The following 8 bytes are an unsigned 64-bit integer. MSB = 0
-            // multi-byte lengths are in network byte order
-            fprintf(stderr, "64-bit payload lengths not supported (no ntohll available)\n");
-            exit(1);
-            mask_offset = 10;
-        }
-
-        masking_key[0] = buf[mask_offset];
-        masking_key[1] = buf[mask_offset + 1];
-        masking_key[2] = buf[mask_offset + 2];
-        masking_key[3] = buf[mask_offset + 3];
-
-        masked_payload_data = (unsigned char *) allocator(_payload_len + 1);
-        if (masked_payload_data == NULL) {
-            return NULL;
-        }
-        masked_payload_data[_payload_len] = 0;
-
-        payload_start = (char *)buf + mask_offset + 4;
-        memcpy(masked_payload_data, payload_start, _payload_len);
-
-        for (i = 0; i < _payload_len; i++) {
-            char mask = masking_key[i % 4];
-            masked_payload_data[i] = masked_payload_data[i] ^ mask;
-        }
-
-        if (payload_len) {
-            *payload_len = _payload_len;
-        }
-
-        return masked_payload_data;
-    }
-}
-
-unsigned char * websocket_server_build_frame(const char *payload, size_t payload_len, void*(*allocator)(size_t), size_t *frame_len) {
-    // RFC6455 for websocket: https://tools.ietf.org/html/rfc6455
-    unsigned char *frame_buf;
-    size_t offset;
-    size_t msg_size;
-
-    if (payload==NULL || payload_len==0 || allocator==NULL) {
-        return NULL;
-    }
-
-    frame_buf = (unsigned char *) allocator(payload_len + 10 + 1);
-    if (frame_buf == NULL) {
-        return NULL;
-    }
-    memset(frame_buf, 0, payload_len + 10 + 1);
-
-    // FIN = 1 (it's the last message) RSV1 = 0, RSV2 = 0, RSV3 =
-    // 0 OpCode(4b) = 1 (binary frame)
-    frame_buf[0] = 0x82;
-
-    if (payload_len < 126) {
-        offset = 2;
-        frame_buf[1] = (char)payload_len;
-    } else if (payload_len < 65536) {
-        offset = 4;
-        frame_buf[1] = 126;
-        *((unsigned short *)(frame_buf + 2)) = htons((unsigned short)payload_len);
-    } else {
-        fprintf(stderr, "Cannot write payloads larger than 2^32 bytes (can't htoni)");
-        exit(1);
-    }
-
-    memcpy(frame_buf + offset, payload, payload_len);
-
-    msg_size = offset + payload_len;
-
-    if (frame_len) {
-        *frame_len = msg_size;
-    }
-
-    return frame_buf;
 }
 
 uint8_t * websocket_build_frame(int masked, const uint8_t *payload, size_t payload_len, void*(*allocator)(size_t), size_t *frame_len) {
