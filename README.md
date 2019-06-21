@@ -146,8 +146,9 @@ Then use [Homebrew](http://brew.sh) to install or build.
 
 Install Homebrew and tools:
 ```bash
-/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 brew install git cmake automake libtool
+brew upgrade git cmake automake libtool
 ```
 Now get source code and build it.
 ```bash
