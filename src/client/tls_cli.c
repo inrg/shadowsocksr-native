@@ -35,8 +35,7 @@ static void tunnel_tls_send_data(struct tunnel_ctx *tunnel, const uint8_t *data,
 static void tunnel_dying(struct tunnel_ctx *tunnel, void *p);
 
 static void _mbed_connect_done_cb(uv_mbed_t* mbed, int status, void *p);
-static void _mbed_alloc_done_cb(uv_mbed_t *mbed, size_t suggested_size, uv_buf_t *buf, void *p);
-static void _mbed_data_received_cb(uv_mbed_t *mbed, ssize_t nread, uv_buf_t* buf, void *p);
+static void _mbed_data_received_cb(uv_mbed_t *mbed, ssize_t nread, const uv_buf_t* buf, void *p);
 static void _mbed_write_done_cb(uv_mbed_t *mbed, int status, void *p);
 static void _mbed_close_done_cb(uv_mbed_t *mbed, void *p);
 
@@ -71,30 +70,25 @@ static void _mbed_connect_done_cb(uv_mbed_t* mbed, int status, void *p) {
         return;
     }
 
-    uv_mbed_read(mbed, _mbed_alloc_done_cb, _mbed_data_received_cb, p);
+    uv_mbed_set_read_callback(mbed, _mbed_data_received_cb, p);
 
     if (tunnel->tunnel_tls_on_connection_established) {
         tunnel->tunnel_tls_on_connection_established(tunnel);
     }
 }
 
-static void _mbed_alloc_done_cb(uv_mbed_t *mbed, size_t suggested_size, uv_buf_t *buf, void *p) {
-    char *base = (char *) calloc(suggested_size, sizeof(char));
-    *buf = uv_buf_init(base, (unsigned int)suggested_size);
-}
-
-static void _mbed_data_received_cb(uv_mbed_t *mbed, ssize_t nread, uv_buf_t* buf, void *p) {
+static void _mbed_data_received_cb(uv_mbed_t *mbed, ssize_t nread, const uv_buf_t* buf, void *p) {
     struct tls_cli_ctx *ctx = (struct tls_cli_ctx *)p;
     struct tunnel_ctx *tunnel = ctx->tunnel;
     assert(ctx->mbed == mbed);
     if (nread > 0) {
         if (tunnel) {
-        assert(tunnel->tunnel_tls_on_data_received);
-        if (tunnel->tunnel_tls_on_data_received) {
-            tunnel->tunnel_tls_on_data_received(tunnel, (uint8_t *)buf->base, (size_t)nread);
-        }
+            assert(tunnel->tunnel_tls_on_data_received);
+            if (tunnel->tunnel_tls_on_data_received) {
+                tunnel->tunnel_tls_on_data_received(tunnel, (uint8_t *)buf->base, (size_t)nread);
+            }
         } else {
-           uv_mbed_close(mbed, _mbed_close_done_cb, p);
+            uv_mbed_close(mbed, _mbed_close_done_cb, p);
         }
     } else if (nread < 0) {
         if (nread == UV_EOF) {
