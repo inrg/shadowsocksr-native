@@ -98,8 +98,6 @@ static void _mbed_data_received_cb(uv_mbed_t *mbed, ssize_t nread, const uv_buf_
         }
         uv_mbed_close(mbed, _mbed_close_done_cb, p);
     }
-
-    free(buf->base);
 }
 
 static void _mbed_write_done_cb(uv_mbed_t *mbed, int status, void *p) {
