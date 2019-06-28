@@ -65,7 +65,7 @@ static void _mbed_connect_done_cb(uv_mbed_t* mbed, int status, void *p) {
     assert(tunnel);
 
     if (status < 0) {
-        fprintf(stderr, "connect failed: %d: %s\n", status, uv_strerror(status));
+        pr_err("connect failed: %d: %s", status, uv_strerror(status));
         uv_mbed_close(mbed, _mbed_close_done_cb, p);
         return;
     }
@@ -92,9 +92,9 @@ static void _mbed_data_received_cb(uv_mbed_t *mbed, ssize_t nread, const uv_buf_
         }
     } else if (nread < 0) {
         if (nread == UV_EOF) {
-            pr_info("connection closed\n");
+            pr_info("connection closed");
         } else {
-            pr_err("read error %ld: %s\n", nread, uv_strerror((int) nread));
+            pr_err("read error %ld: %s", nread, uv_strerror((int) nread));
         }
         uv_mbed_close(mbed, _mbed_close_done_cb, p);
     }
@@ -104,7 +104,7 @@ static void _mbed_write_done_cb(uv_mbed_t *mbed, int status, void *p) {
     struct tls_cli_ctx *ctx = (struct tls_cli_ctx *)p;
     assert(ctx->mbed == mbed);
     if (status < 0) {
-        pr_err("write failed: %d: %s\n", status, uv_strerror(status));
+        pr_err("write failed: %d: %s", status, uv_strerror(status));
         uv_mbed_close(mbed, _mbed_close_done_cb, p);
     }
 }
