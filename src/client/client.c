@@ -782,8 +782,9 @@ void tunnel_tls_client_incoming_streaming(struct tunnel_ctx *tunnel, struct sock
             ASSERT(tunnel->tunnel_extract_data);
             buf = tunnel->tunnel_extract_data(socket, &malloc, &len);
             if (buf /* && size > 0 */) {
+                ws_frame_info info = { WS_OPCODE_BINARY, true, true, };
                 size_t frame_len = 0;
-                uint8_t *frame = websocket_build_frame(true, buf, len, &malloc, &frame_len);
+                uint8_t *frame = websocket_build_frame(&info, buf, len, &malloc, &frame_len);
                 ASSERT(tunnel->tunnel_tls_send_data);
                 tunnel->tunnel_tls_send_data(tunnel, frame, frame_len);
                 free(frame);
@@ -860,8 +861,9 @@ static void tunnel_tls_on_data_received(struct tunnel_ctx *tunnel, const uint8_t
         free(calc_val);
         return;
     } else {
+        ws_frame_info info = { WS_OPCODE_BINARY, };
         size_t payload_len = 0;
-        uint8_t *payload =  websocket_retrieve_payload(data, size, &malloc, &payload_len);
+        uint8_t *payload =  websocket_retrieve_payload(data, size, &malloc, &payload_len, &info);
         struct buffer_t *tmp = buffer_create_from(payload, payload_len);
         struct buffer_t *feedback = NULL;
         enum ssr_error e = tunnel_tls_cipher_client_decrypt(ctx->cipher, tmp, &feedback);

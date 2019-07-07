@@ -192,7 +192,7 @@ char * websocket_connect_response(const char *sec_websocket_key, void*(*allocato
     return tls_ok;
 }
 
-uint8_t * websocket_build_frame(int masked, const uint8_t *payload, size_t payload_len, void*(*allocator)(size_t), size_t *frame_len) {
+uint8_t * websocket_build_frame(const ws_frame_info *info, const uint8_t *payload, size_t payload_len, void*(*allocator)(size_t), size_t *frame_len) {
     uint8_t finNopcode;
     size_t payload_len_small;
     size_t payload_offset;
@@ -200,7 +200,7 @@ uint8_t * websocket_build_frame(int masked, const uint8_t *payload, size_t paylo
     size_t frame_size;
     uint8_t *data;
 
-    if (payload==NULL || payload_len==0 || allocator==NULL) {
+    if (info==NULL || allocator==NULL) {
         return NULL;
     }
 
@@ -208,7 +208,7 @@ uint8_t * websocket_build_frame(int masked, const uint8_t *payload, size_t paylo
 
     // FIN = 1 (it's the last message) RSV1 = 0, RSV2 = 0, RSV3 = 0
     // OpCode(4b) = 2 (binary frame)
-    finNopcode = 0x82;
+    finNopcode = (info->fin ? 0x80 : 0x00) | info->opcode; //; 0x82;
     if(payload_len <= 125) {
         payload_len_small = payload_len;
         len_size = 0;
@@ -223,13 +223,13 @@ uint8_t * websocket_build_frame(int masked, const uint8_t *payload, size_t paylo
         return NULL;
     }
 
-    payload_offset = 2 + len_size + (masked ? WS_MASK_SIZE : 0);
+    payload_offset = 2 + len_size + (info->masking ? WS_MASK_SIZE : 0);
     frame_size = payload_offset + payload_len;
 
     data = (unsigned char *) allocator(frame_size + 1);
     memset(data, 0, frame_size + 1);
     *data = finNopcode;
-    if (masked) {
+    if (info->masking) {
         *(data + 1) = ((uint8_t)payload_len_small) | 0x80; // payload length with mask bit on
     } else {
         *(data + 1) = ((uint8_t)payload_len_small) & 0x7F;
@@ -245,7 +245,7 @@ uint8_t * websocket_build_frame(int masked, const uint8_t *payload, size_t paylo
 
     memcpy(data + payload_offset, payload, payload_len);
 
-    if (masked) {
+    if (info->masking) {
         size_t i;
         uint8_t mask[WS_MASK_SIZE];
         random_bytes_generator("RANDOM_GEN", mask, sizeof(mask));
@@ -262,7 +262,7 @@ uint8_t * websocket_build_frame(int masked, const uint8_t *payload, size_t paylo
     return data;
 }
 
-uint8_t * websocket_retrieve_payload(const uint8_t *data, size_t dataLen, void*(*allocator)(size_t), size_t *payload_len)
+uint8_t * websocket_retrieve_payload(const uint8_t *data, size_t dataLen, void*(*allocator)(size_t), size_t *payload_len, ws_frame_info *info)
 {
     unsigned char *package = NULL;
     bool flagFIN = false, flagMask = false;
@@ -335,6 +335,12 @@ uint8_t * websocket_retrieve_payload(const uint8_t *data, size_t dataLen, void*(
     } else {
         // 解包数据没使用掩码, 直接复制数据段...
         memcpy(package, data + packageHeadLen, len);
+    }
+
+    if (info) {
+        info->opcode = (ws_opcode)Opcode;
+        info->fin = flagFIN;
+        info->masking = flagMask;
     }
     return package;
 }
