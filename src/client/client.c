@@ -821,18 +821,13 @@ static void tunnel_tls_on_connection_established(struct tunnel_ctx *tunnel) {
             const char *url_path = config->over_tls_path;
             const char *domain = config->over_tls_server_domain;
             unsigned short domain_port = config->remote_port;
-            uint8_t *buf = (uint8_t *)calloc(MAX_REQUEST_SIZE, sizeof(*buf));
+            uint8_t *buf = NULL;
             size_t len = 0;
             char *key = websocket_generate_sec_websocket_key(&malloc);
-            sprintf((char *)buf, WEBSOCKET_REQUEST_FORMAT,
-                url_path, domain, domain_port, key, (int)tmp->len);
             ctx->sec_websocket_key = key;
-            len = strlen((char *)buf);
 
-            if (tmp->buffer && tmp->len) {
-                memcpy(buf + len, tmp->buffer, tmp->len);
-                len += tmp->len;
-            }
+            buf = websocket_connect_request(domain, domain_port, url_path, key,
+                tmp->buffer, tmp->len, &malloc, &len);
 
             tunnel->tunnel_tls_send_data(tunnel, buf, len);
             ctx->stage = tunnel_stage_tls_websocket_upgrade;
@@ -847,7 +842,7 @@ static void tunnel_tls_on_data_received(struct tunnel_ctx *tunnel, const uint8_t
     struct client_ctx *ctx = (struct client_ctx *) tunnel->data;
     struct socket_ctx *incoming = tunnel->incoming;
     if (ctx->stage == tunnel_stage_tls_websocket_upgrade) {
-        struct http_headers *hdrs = http_headers_parse(0, data, size);
+        struct http_headers *hdrs = http_headers_parse(false, data, size);
         const char *accept_val = http_headers_get_field_val(hdrs, SEC_WEBSOKET_ACCEPT);
         const char *ws_status = http_headers_get_status(hdrs);
         char *calc_val = websocket_generate_sec_websocket_accept(ctx->sec_websocket_key, &malloc);

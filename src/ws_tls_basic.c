@@ -22,6 +22,8 @@ https://segmentfault.com/a/1190000012709475
 
 RFC6455 for websocket: https://tools.ietf.org/html/rfc6455
 
+https://github.com/abbshr/abbshr.github.io/issues/22
+
  0                   1                   2                   3
  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 +-+-+-+-+-------+-+-------------+-------------------------------+
@@ -86,6 +88,10 @@ char * websocket_generate_sec_websocket_key(void*(*allocator)(size_t)) {
     return b64_str;
 }
 
+//
+// Sec-WebSocket-Accept = 
+//    toBase64( sha1( Sec-WebSocket-Key + 258EAFA5-E914-47DA-95CA-C5AB0DC85B11 ) )
+//
 char * websocket_generate_sec_websocket_accept(const char *sec_websocket_key, void*(*allocator)(size_t)) {
     mbedtls_sha1_context sha1_ctx = { 0 };
     unsigned char sha1_hash[SHA_DIGEST_LENGTH] = { 0 };
@@ -121,6 +127,78 @@ char * websocket_generate_sec_websocket_accept(const char *sec_websocket_key, vo
     free(concatenated_val);
 
     return b64_str;
+}
+
+#define WEBSOCKET_REQUEST_FORMAT                                                \
+    "GET %s HTTP/1.1\r\n"                                                       \
+    "Host: %s:%d\r\n"                                                           \
+    "Connection: Upgrade\r\n"                                                   \
+    "Upgrade: websocket\r\n"                                                    \
+    "Sec-WebSocket-Version: 13\r\n"                                             \
+    "Sec-WebSocket-Key: %s\r\n"                                                 \
+    "Content-Type: application/octet-stream\r\n"                                \
+    "Content-Length: %d\r\n"                                                    \
+    "\r\n"
+
+uint8_t * websocket_connect_request(const char *domain, uint16_t port, const char *url,
+    const char *key, const uint8_t *data, size_t data_len, void*(*allocator)(size_t),
+    size_t *result_len)
+{
+    uint8_t *buf = NULL;
+    const char *fmt = WEBSOCKET_REQUEST_FORMAT;
+    size_t buf_len = 0;
+    if (domain==NULL || port==0 || key==NULL || allocator==NULL) {
+        return NULL;
+    }
+
+    url = url?url:"/";
+
+    buf_len = strlen(fmt) + strlen(domain) + 5 + strlen(url) + strlen(key) + data_len;
+
+    buf = (uint8_t *) allocator(buf_len + 1);
+    if (buf == NULL) {
+        return NULL;
+    }
+    memset(buf, 0, buf_len + 1);
+
+    sprintf((char *)buf, fmt, url, domain, (int)port, key, (int)data_len);
+    buf_len = strlen((char *)buf);
+
+    if (data && data_len) {
+        memcpy(buf + buf_len, data, data_len);
+        buf_len += data_len;
+    }
+
+    if (result_len) {
+        *result_len = buf_len;
+    }
+
+    return buf;
+}
+
+#define WEBSOCKET_RESPONSE                                                      \
+    "HTTP/1.1 101 Switching Protocols\r\n"                                      \
+    "Upgrade: websocket\r\n"                                                    \
+    "Connection: Upgrade\r\n"                                                   \
+    "Sec-WebSocket-Accept: %s\r\n"                                              \
+    "\r\n"
+
+char * websocket_connect_response(const char *sec_websocket_key, void*(*allocator)(size_t)) {
+    char *calc_val;
+    char *tls_ok;
+    if (sec_websocket_key==NULL || allocator==NULL) {
+        return NULL;
+    }
+    calc_val = websocket_generate_sec_websocket_accept(sec_websocket_key, &malloc);
+    if (calc_val == NULL) {
+        return NULL;
+    }
+    tls_ok = (char *) allocator(strlen(WEBSOCKET_RESPONSE) + strlen(calc_val));
+
+    sprintf((char *)tls_ok, WEBSOCKET_RESPONSE, calc_val);
+    free(calc_val);
+
+    return tls_ok;
 }
 
 uint8_t * websocket_build_frame(int masked, const uint8_t *payload, size_t payload_len, void*(*allocator)(size_t), size_t *frame_len) {

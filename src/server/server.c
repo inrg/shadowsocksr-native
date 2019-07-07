@@ -879,7 +879,7 @@ static void do_tls_init_package(struct tunnel_ctx *tunnel, struct socket_ctx *so
         ctx->cipher = tunnel_cipher_create(ctx->env, tcp_mss);
         ctx->_tcp_mss = tcp_mss;
 
-        hdrs = http_headers_parse(1, indata, len);
+        hdrs = http_headers_parse(true, indata, len);
         {
             const char *key = http_headers_get_field_val(hdrs, SEC_WEBSOKET_KEY);
             const char *url = http_headers_get_url(hdrs);
@@ -916,14 +916,12 @@ static void do_tls_client_feedback(struct tunnel_ctx *tunnel) {
     struct server_ctx *ctx = (struct server_ctx *) tunnel->data;
     struct server_config *config = ctx->env->config;
     struct socket_ctx *incoming = tunnel->incoming;
-    char *calc_val = websocket_generate_sec_websocket_accept(ctx->sec_websocket_key, &malloc);
-    char tls_ok[0x100] = { 0 };
-    sprintf(tls_ok, WEBSOCKET_RESPONSE, calc_val);
-    free(calc_val);
+    char *tls_ok = websocket_connect_response(ctx->sec_websocket_key, &malloc);
 
     ASSERT(config->over_tls_enable); (void)config;
 
     socket_write(incoming, tls_ok, strlen(tls_ok));
+    free(tls_ok);
 
     ctx->stage = tunnel_stage_tls_client_feedback;
 }
