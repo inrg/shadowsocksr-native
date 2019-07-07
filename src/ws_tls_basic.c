@@ -6,15 +6,6 @@
 #include <mbedtls/sha1.h>
 #include <mbedtls/base64.h>
 
-#if defined(WIN32) || defined(_WIN32)
-#include <WinSock2.h>
-#include <WS2tcpip.h>
-#pragma comment(lib,"ws2_32.lib")
-#else
-#include <sys/socket.h>
-#include <netinet/in.h>
-#endif
-
 #include "ws_tls_basic.h"
 
 /*
@@ -245,17 +236,11 @@ uint8_t * websocket_build_frame(int masked, const uint8_t *payload, size_t paylo
     }
     if(payload_len_small == 126) {
         payload_len &= 0xffff;
-        *((uint16_t *)(data + 2)) = (uint16_t)htons((uint16_t)payload_len);
+        *((uint16_t *)(data + 2)) = (uint16_t)ws_hton16((uint16_t)payload_len);
     }
     if(payload_len_small == 127) {
         payload_len &= 0xffffffffffffffffLL;
-#if 0
-        for(i = 0; i < len_size; i++) {
-            *(data+2+i) = *(((uint8_t *)&payload_len) + (len_size-i-1));
-        }
-#else
-        *((uint32_t *)(data + 2 + 4)) = (uint32_t)htonl((uint32_t)payload_len);
-#endif
+        *((uint64_t *)(data + 2)) = (uint64_t)ws_hton64((uint64_t)payload_len);
     }
 
     memcpy(data + payload_offset, payload, payload_len);
@@ -307,7 +292,7 @@ uint8_t * websocket_retrieve_payload(const uint8_t *data, size_t dataLen, void*(
     len = (size_t)(data[1] & 0x7F);
     if (len == 126) {
         if(dataLen < 4) { return NULL; }
-        len = (size_t) ntohs( *((uint16_t *)(data + 2)) );
+        len = (size_t) ws_ntoh16( *((uint16_t *)(data + 2)) );
         packageHeadLen = 4 + count;
         if (flagMask) {
             memcpy(maskKey, data + 4, 4);
@@ -316,10 +301,11 @@ uint8_t * websocket_retrieve_payload(const uint8_t *data, size_t dataLen, void*(
     else if (len == 127) {
         if (dataLen < 10) { return NULL; }
         // 使用 8 个字节存储长度时, 前 4 位必须为 0, 装不下那么多数据 .
-        if(data[2] != 0 || data[3] != 0 || data[4] != 0 || data[5] != 0) {
+        if(*((uint32_t *)(data + 2)) != 0) {
+            assert(!"the data too big!!!");
             return NULL;
         }
-        len = (size_t) ntohl( *((uint32_t *)(data + 6)) );
+        len = (size_t) ws_ntoh64( *((uint64_t *)(data + 2)) );
         packageHeadLen = 10 + count;
 
         if (flagMask) {
@@ -353,3 +339,62 @@ uint8_t * websocket_retrieve_payload(const uint8_t *data, size_t dataLen, void*(
     return package;
 }
 
+#include <stdint.h>
+#undef WS_IS_LITTLE_ENDIAN
+#define WS_IS_LITTLE_ENDIAN() (*(uint16_t*)"\0\1">>8)
+
+#undef WS_IS_BIG_ENDIAN
+#define WS_IS_BIG_ENDIAN() (*(uint16_t*)"\1\0">>8)
+
+void _ws_hton(void *mem, size_t len) {
+    if ( WS_IS_LITTLE_ENDIAN() ) {
+        uint8_t *bytes;
+        size_t i, mid;
+
+        if (len % 2) { return; }
+
+        mid = len / 2;
+        bytes = (uint8_t *)mem;
+        for (i = 0; i < mid; i++) {
+            uint8_t tmp = bytes[i];
+            bytes[i] = bytes[len - i - 1];
+            bytes[len - i - 1] = tmp;
+        }
+    }
+}
+
+#if 0
+void _ws_ntoh(void *mem, size_t len) {
+    _ws_hton(mem, len);
+}
+#endif
+
+uint16_t ws_ntoh16(uint16_t n) {
+    _ws_hton(&n, sizeof(n)); // _ws_ntoh(&n, sizeof(n));
+    return n;
+}
+
+uint16_t ws_hton16(uint16_t n) {
+    _ws_hton(&n, sizeof(n));
+    return n;
+}
+
+uint32_t ws_ntoh32(uint32_t n) {
+    _ws_hton(&n, sizeof(n));
+    return n;
+}
+
+uint32_t ws_hton32(uint32_t n) {
+    _ws_hton(&n, sizeof(n));
+    return n;
+}
+
+uint64_t ws_ntoh64(uint64_t n) {
+    _ws_hton(&n, sizeof(n));
+    return n;
+}
+
+uint64_t ws_hton64(uint64_t n) {
+    _ws_hton(&n, sizeof(n));
+    return n;
+}

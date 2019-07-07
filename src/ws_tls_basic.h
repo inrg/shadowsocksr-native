@@ -22,4 +22,15 @@ char * websocket_connect_response(const char *sec_websocket_key, void*(*allocato
 uint8_t * websocket_build_frame(int masked, const uint8_t *payload, size_t payload_len, void*(*allocator)(size_t), size_t *frame_len);
 uint8_t * websocket_retrieve_payload(const uint8_t *data, size_t dataLen, void*(*allocator)(size_t), size_t *packageLen);
 
+
+uint16_t ws_ntoh16(uint16_t n);
+uint16_t ws_hton16(uint16_t n);
+
+uint32_t ws_ntoh32(uint32_t n);
+uint32_t ws_hton32(uint32_t n);
+
+uint64_t ws_ntoh64(uint64_t n);
+uint64_t ws_hton64(uint64_t n);
+
+
 #endif /* __WS_TLS_BASIC_H__ */
