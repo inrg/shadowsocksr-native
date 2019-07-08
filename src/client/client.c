@@ -784,7 +784,9 @@ void tunnel_tls_client_incoming_streaming(struct tunnel_ctx *tunnel, struct sock
             if (buf /* && size > 0 */) {
                 ws_frame_info info = { WS_OPCODE_BINARY, true, true, };
                 size_t frame_len = 0;
-                uint8_t *frame = websocket_build_frame(&info, buf, len, &malloc, &frame_len);
+                uint8_t *frame;
+                ws_frame_binary_alone(true, &info);
+                frame = websocket_build_frame(&info, buf, len, &malloc, &frame_len);
                 ASSERT(tunnel->tunnel_tls_send_data);
                 tunnel->tunnel_tls_send_data(tunnel, frame, frame_len);
                 free(frame);

@@ -1,6 +1,21 @@
 #ifndef __WS_TLS_BASIC_H__
 #define __WS_TLS_BASIC_H__
 
+#include <stdlib.h>
+#include <stdio.h>
+#include <stdbool.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#if !defined(__cplusplus)
+#ifdef _MSC_VER
+#undef inline
+#define inline __inline
+#endif /* _MSC_VER */
+#endif /* __cplusplus */
+
 #define MAX_REQUEST_SIZE      0x8000
 
 #define WEBSOCKET_STATUS    "Switching Protocols"
@@ -42,10 +57,34 @@ typedef enum ws_opcode {
 
 typedef struct ws_frame_info {
     ws_opcode opcode;
-    int fin;
-    int masking;
+    bool fin;
+    bool masking;
     ws_close_reason reason;
 } ws_frame_info;
+
+static inline void ws_frame_binary_first(bool masking, ws_frame_info *info) {
+    info->opcode = WS_OPCODE_BINARY;
+    info->fin = false;
+    info->masking = masking;
+}
+
+static inline void ws_frame_binary_continuous(bool masking, ws_frame_info *info) {
+    info->opcode = WS_OPCODE_CONTINUATION;
+    info->fin = false;
+    info->masking = masking;
+}
+
+static inline void ws_frame_binary_final(bool masking, ws_frame_info *info) {
+    info->opcode = WS_OPCODE_CONTINUATION;
+    info->fin = true;
+    info->masking = masking;
+}
+
+static inline void ws_frame_binary_alone(bool masking, ws_frame_info *info) {
+    info->opcode = WS_OPCODE_BINARY;
+    info->fin = true;
+    info->masking = masking;
+}
 
 
 void random_bytes_generator(const char *seed, uint8_t *buffer, size_t len);
@@ -69,5 +108,8 @@ uint32_t ws_hton32(uint32_t n);
 uint64_t ws_ntoh64(uint64_t n);
 uint64_t ws_hton64(uint64_t n);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __WS_TLS_BASIC_H__ */

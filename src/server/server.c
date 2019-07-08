@@ -59,6 +59,7 @@ struct server_ctx {
     size_t _recv_buffer_size;
     size_t _recv_d_max_size;
     char *sec_websocket_key;
+    bool ws_tls_beginning;
 };
 
 struct address_timestamp {
@@ -972,7 +973,14 @@ static uint8_t* tunnel_extract_data(struct socket_ctx *socket, void*(*allocator)
                 ws_frame_info info = { WS_OPCODE_BINARY, false, false, };
                 struct buffer_t *tmp = tunnel_tls_cipher_server_encrypt(cipher_ctx, src);
                 size_t frame_len = 0;
-                uint8_t *frame = websocket_build_frame(&info, tmp->buffer, tmp->len, &malloc, &frame_len);
+                uint8_t *frame;
+                if (!ctx->ws_tls_beginning) {
+                    ctx->ws_tls_beginning = true;
+                    ws_frame_binary_first(false, &info);
+                } else {
+                    ws_frame_binary_continuous(false, &info);
+                }
+                frame = websocket_build_frame(&info, tmp->buffer, tmp->len, &malloc, &frame_len);
                 buf = buffer_create_from(frame, frame_len);
                 free(frame);
                 buffer_release(tmp);
