@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -60,6 +61,8 @@ typedef struct ws_frame_info {
     bool fin;
     bool masking;
     ws_close_reason reason;
+    size_t frame_size;
+    size_t payload_size;
 } ws_frame_info;
 
 static inline void ws_frame_binary_first(bool masking, ws_frame_info *info) {
@@ -95,8 +98,8 @@ uint8_t * websocket_connect_request(const char *domain, uint16_t port, const cha
     const char *key, const uint8_t *data, size_t data_len, void*(*allocator)(size_t),
     size_t *result_len);
 char * websocket_connect_response(const char *sec_websocket_key, void*(*allocator)(size_t));
-uint8_t * websocket_build_frame(const ws_frame_info *info, const uint8_t *payload, size_t payload_len, void*(*allocator)(size_t), size_t *frame_len);
-uint8_t * websocket_retrieve_payload(const uint8_t *data, size_t dataLen, void*(*allocator)(size_t), size_t *packageLen, ws_frame_info *info);
+uint8_t * websocket_build_frame(ws_frame_info *info, const uint8_t *payload, size_t payload_len, void*(*allocator)(size_t));
+uint8_t * websocket_retrieve_payload(const uint8_t *data, size_t dataLen, void*(*allocator)(size_t), ws_frame_info *info);
 
 
 uint16_t ws_ntoh16(uint16_t n);

@@ -192,7 +192,7 @@ char * websocket_connect_response(const char *sec_websocket_key, void*(*allocato
     return tls_ok;
 }
 
-uint8_t * websocket_build_frame(const ws_frame_info *info, const uint8_t *payload, size_t payload_len, void*(*allocator)(size_t), size_t *frame_len) {
+uint8_t * websocket_build_frame(ws_frame_info *info, const uint8_t *payload, size_t payload_len, void*(*allocator)(size_t)) {
     uint8_t finNopcode;
     size_t payload_len_small;
     size_t payload_offset;
@@ -256,13 +256,13 @@ uint8_t * websocket_build_frame(const ws_frame_info *info, const uint8_t *payloa
         }
     }
 
-    if (frame_len) {
-        *frame_len  = frame_size;
-    }
+    info->frame_size = frame_size;
+    info->payload_size = payload_len;
+
     return data;
 }
 
-uint8_t * websocket_retrieve_payload(const uint8_t *data, size_t dataLen, void*(*allocator)(size_t), size_t *payload_len, ws_frame_info *info)
+uint8_t * websocket_retrieve_payload(const uint8_t *data, size_t dataLen, void*(*allocator)(size_t), ws_frame_info *info)
 {
     unsigned char *package = NULL;
     bool flagFIN = false, flagMask = false;
@@ -272,7 +272,10 @@ uint8_t * websocket_retrieve_payload(const uint8_t *data, size_t dataLen, void*(
     size_t len = 0;
     size_t packageHeadLen = 0;
 
-    if (allocator == NULL) { return NULL; }
+    if (allocator == NULL || info==NULL) {
+        assert(0);
+        return NULL;
+    }
 
     if (dataLen < 2) { return NULL; }
 
@@ -319,8 +322,13 @@ uint8_t * websocket_retrieve_payload(const uint8_t *data, size_t dataLen, void*(
         }
     }
 
-    if (dataLen < len + packageHeadLen) { return NULL; }
-    if (payload_len) { *payload_len = len; }
+    info->opcode = (ws_opcode)Opcode;
+    info->fin = flagFIN;
+    info->masking = flagMask;
+    info->frame_size = len + packageHeadLen;
+    info->payload_size = len;
+
+    if (dataLen < info->frame_size) { return NULL; }
 
     package = (uint8_t *) allocator( len + 1 );
     memset(package, 0, len + 1);
@@ -337,11 +345,6 @@ uint8_t * websocket_retrieve_payload(const uint8_t *data, size_t dataLen, void*(
         memcpy(package, data + packageHeadLen, len);
     }
 
-    if (info) {
-        info->opcode = (ws_opcode)Opcode;
-        info->fin = flagFIN;
-        info->masking = flagMask;
-    }
     return package;
 }
 
