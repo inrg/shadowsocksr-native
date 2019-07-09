@@ -692,7 +692,7 @@ ssize_t auth_chain_a_client_post_decrypt(struct obfs_t *obfs, char **pplaindata,
         memcpy(local->last_server_hash, hash, 16);
         ++local->recv_id;
         buffer += out_len;
-        buffer_shorten(local->recv_buffer, len, local->recv_buffer->len - len);
+        buffer_shortened_to(local->recv_buffer, len, local->recv_buffer->len - len);
     }
     if (error == 0) {
         len = (int)(buffer - out_buffer);
@@ -870,7 +870,7 @@ struct buffer_t * auth_chain_a_server_pre_encrypt(struct obfs_t *obfs, const str
         buffer_concatenate2(ret, swap);
         buffer_release(swap);
 
-        buffer_shorten(tmp_buf, local->unit_len, tmp_buf->len - local->unit_len);
+        buffer_shortened_to(tmp_buf, local->unit_len, tmp_buf->len - local->unit_len);
     }
     swap = auth_chain_a_pack_server_data(obfs, tmp_buf);
     buffer_concatenate2(ret, swap);
@@ -968,7 +968,7 @@ struct buffer_t * auth_chain_a_server_post_decrypt(struct obfs_t *obfs, struct b
             b64len1 = std_base64_encode(local->user_key->buffer, (int)local->user_key->len, password);
             b64len2 = std_base64_encode(local->last_client_hash, (int)sizeof(local->last_client_hash), password + b64len1);
         }
-        buffer_shorten(local->recv_buffer, 36, local->recv_buffer->len - 36);
+        buffer_shortened_to(local->recv_buffer, 36, local->recv_buffer->len - 36);
         local->has_recv_header = true;
         if (need_feedback) { *need_feedback = true; }
 
@@ -1041,7 +1041,7 @@ struct buffer_t * auth_chain_a_server_post_decrypt(struct obfs_t *obfs, struct b
             free(buffer);
         }
         memcpy(local->last_client_hash, client_hash, 16);
-        buffer_shorten(local->recv_buffer, length + 4, local->recv_buffer->len - (length + 4));
+        buffer_shortened_to(local->recv_buffer, length + 4, local->recv_buffer->len - (length + 4));
 
         if (data_len == 0) {
             if (need_feedback) { *need_feedback = true; }

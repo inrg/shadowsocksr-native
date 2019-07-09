@@ -693,7 +693,7 @@ static void do_parse(struct tunnel_ctx *tunnel, struct socket_ctx *socket) {
     }
 
     offset = socks5_address_size(s5addr);
-    buffer_shorten(init_pkg, offset, init_pkg->len - offset);
+    buffer_shortened_to(init_pkg, offset, init_pkg->len - offset);
 
     host = s5addr->addr.domainname;
 

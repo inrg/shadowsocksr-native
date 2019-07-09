@@ -308,7 +308,7 @@ struct buffer_t * http_simple_client_decode(struct obfs_t *obfs, const struct bu
         data_begin += 4;
         local->has_recv_header = 1;
         outlength = result->len - (data_begin - encryptdata);
-        buffer_shorten(result, (data_begin - encryptdata), outlength);
+        buffer_shortened_to(result, (data_begin - encryptdata), outlength);
     } else {
         buffer_reset(result);
     }

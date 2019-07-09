@@ -57,6 +57,6 @@ size_t buffer_store(struct buffer_t *ptr, const uint8_t *data, size_t size);
 void buffer_replace(struct buffer_t *dst, const struct buffer_t *src);
 size_t buffer_concatenate(struct buffer_t *ptr, const uint8_t *data, size_t size);
 size_t buffer_concatenate2(struct buffer_t *dst, const struct buffer_t *src);
-void buffer_shorten(struct buffer_t *ptr, size_t begin, size_t len);
+void buffer_shortened_to(struct buffer_t *ptr, size_t begin, size_t len);
 
 #endif // __SSR_BUFFER_H__

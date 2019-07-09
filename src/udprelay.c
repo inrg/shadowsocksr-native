@@ -1147,7 +1147,7 @@ udp_listener_recv_cb(uv_udp_t* handle, ssize_t nread, const uv_buf_t* buf0, cons
         uv_timer_start(&remote_ctx->watcher, udp_remote_timeout_cb, (uint64_t)server_ctx->timeout, 0);
     }
 
-    buffer_shorten(buf, offset, buf->len - offset);
+    buffer_shortened_to(buf, offset, buf->len - offset);
 
     // SSR beg
     if (server_ctx->protocol_plugin) {
