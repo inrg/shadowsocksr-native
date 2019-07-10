@@ -81,6 +81,8 @@ void tunnel_add_dying_cb(struct tunnel_ctx *tunnel, tunnel_dying_cb cb, void *p)
 void tunnel_shutdown(struct tunnel_ctx *tunnel);
 void tunnel_traditional_streaming(struct tunnel_ctx *tunnel, struct socket_ctx *socket);
 int socket_connect(struct socket_ctx *c);
+bool socket_is_readable(struct socket_ctx *sc);
+bool socket_is_writeable(struct socket_ctx *sc);
 void socket_read(struct socket_ctx *c, bool check_timeout);
 void socket_read_stop(struct socket_ctx *c);
 void socket_getaddrinfo(struct socket_ctx *c, const char *hostname);

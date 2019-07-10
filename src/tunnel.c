@@ -322,6 +322,14 @@ static void socket_connect_done_cb(uv_connect_t *req, int status) {
     tunnel->tunnel_outgoing_connected_done(tunnel, c);
 }
 
+bool socket_is_readable(struct socket_ctx *sc) {
+    return sc ? (sc->rdstate == socket_stop) : false;
+}
+
+bool socket_is_writeable(struct socket_ctx *sc) {
+    return sc ? (sc->wrstate == socket_stop) : false;
+}
+
 void socket_read(struct socket_ctx *c, bool check_timeout) {
     ASSERT(c->rdstate == socket_stop);
     VERIFY(0 == uv_read_start(&c->handle.stream, socket_alloc_cb, socket_read_done_cb));

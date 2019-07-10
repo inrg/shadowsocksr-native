@@ -71,6 +71,8 @@ struct client_ctx {
     s5_ctx *parser;  /* The SOCKS protocol parser. */
     enum tunnel_stage stage;
     char *sec_websocket_key;
+    struct buffer_t *remote_received_buffer;
+    struct buffer_t *local_write_buffer;
 };
 
 static struct buffer_t * initial_package_create(const s5_ctx *parser);
@@ -129,6 +131,10 @@ static bool init_done_cb(struct tunnel_ctx *tunnel, void *p) {
     s5_init(ctx->parser);
     ctx->cipher = NULL;
     ctx->stage = tunnel_stage_handshake;
+
+#define READ_BUFFER_SIZE 65536
+    ctx->remote_received_buffer = buffer_create(READ_BUFFER_SIZE);
+    ctx->local_write_buffer = buffer_create(READ_BUFFER_SIZE);
 
     return true;
 }
@@ -715,6 +721,8 @@ static void tunnel_dying(struct tunnel_ctx *tunnel, void *p) {
     buffer_release(ctx->init_pkg);
     free(ctx->parser);
     if (ctx->sec_websocket_key) { free(ctx->sec_websocket_key); }
+    buffer_release(ctx->remote_received_buffer);
+    buffer_release(ctx->local_write_buffer);
     free(ctx);
 }
 
@@ -766,13 +774,24 @@ static void tunnel_tls_do_launch_streaming(struct tunnel_ctx *tunnel) {
 }
 
 void tunnel_tls_client_incoming_streaming(struct tunnel_ctx *tunnel, struct socket_ctx *socket) {
+    struct client_ctx *ctx = (struct client_ctx *) tunnel->data;
     ASSERT(socket == tunnel->incoming);
 
     ASSERT((socket->wrstate == socket_done && socket->rdstate != socket_done) ||
         (socket->wrstate != socket_done && socket->rdstate == socket_done));
 
     if (socket->wrstate == socket_done) {
+        size_t len = 0;
+        const uint8_t *buf = NULL;
+
         socket->wrstate = socket_stop;
+        assert(socket_is_writeable(socket));
+
+        buf = buffer_get_data(ctx->local_write_buffer, &len);
+        if (len) {
+            socket_write(socket, buf, len);
+            buffer_reset(ctx->local_write_buffer);
+        }
     }
     else if (socket->rdstate == socket_done) {
         socket->rdstate = socket_stop;
@@ -862,17 +881,40 @@ static void tunnel_tls_on_data_received(struct tunnel_ctx *tunnel, const uint8_t
         free(calc_val);
         return;
     } else {
-        ws_frame_info info = { WS_OPCODE_BINARY, };
-        uint8_t *payload =  websocket_retrieve_payload(data, size, &malloc, &info);
-        struct buffer_t *tmp = buffer_create_from(payload, info.payload_size);
-        struct buffer_t *feedback = NULL;
-        enum ssr_error e = tunnel_tls_cipher_client_decrypt(ctx->cipher, tmp, &feedback);
-        assert(!feedback);
+        assert(ctx->stage == tunnel_stage_tls_streaming);
 
-        socket_write(incoming, tmp->buffer, tmp->len);
+        buffer_concatenate(ctx->remote_received_buffer, data, size);
+        do {
+            ws_frame_info info = { WS_OPCODE_BINARY, };
+            struct buffer_t *tmp;
+            enum ssr_error e;
+            struct buffer_t *feedback = NULL;
+            size_t buf_len = 0;
+            const uint8_t *buf_data = buffer_get_data(ctx->remote_received_buffer, &buf_len);
+            uint8_t *payload =  websocket_retrieve_payload(buf_data, buf_len, &malloc, &info);
+            if (payload == NULL) {
+                break;
+            }
+            buffer_shortened_to(ctx->remote_received_buffer, info.frame_size, buf_len-info.frame_size);
 
-        buffer_release(tmp);
-        free(payload);
+            tmp = buffer_create_from(payload, info.payload_size);
+            e = tunnel_tls_cipher_client_decrypt(ctx->cipher, tmp, &feedback);
+            assert(!feedback);
+
+            buffer_concatenate2(ctx->local_write_buffer, tmp);
+
+            buffer_release(tmp);
+            free(payload);
+        } while(true);
+
+        if (socket_is_writeable(incoming)) {
+            size_t s = 0;
+            const uint8_t *p = buffer_get_data(ctx->local_write_buffer, &s);
+            if (s) {
+                socket_write(incoming, p, s);
+                buffer_reset(ctx->local_write_buffer);
+            }
+        }
     }
 }
 
