@@ -63,6 +63,17 @@ struct buffer_t * buffer_create_from(const uint8_t *data, size_t len) {
     return result;
 }
 
+size_t buffer_get_length(const struct buffer_t *ptr) {
+    return ptr ? ptr->len : 0;
+}
+
+const uint8_t * buffer_get_data(const struct buffer_t *ptr, size_t *length) {
+    if (length) {
+        *length = buffer_get_length(ptr);
+    }
+    return ptr ? ptr->buffer : NULL;
+}
+
 int buffer_compare(const struct buffer_t *ptr1, const struct buffer_t *ptr2, size_t size) {
     if (ptr1==NULL && ptr2==NULL) {
         return 0;
